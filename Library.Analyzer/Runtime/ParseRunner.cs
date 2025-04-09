@@ -19,13 +19,13 @@ namespace Library.Analyzer.Runtime
         private readonly StringBuilder _builder;
         private readonly TextReader _reader;
         private readonly ILexemeFactoryRegistry _lexemeFactoryRegistry;
-        private readonly List<ILexeme> _tokenLexemes;
+        public List<ILexeme> _tokenLexemes;
         private readonly List<ILexeme> _ignoreLexemes;        
         private readonly List<ILexeme> _triviaAccumulator;
         private readonly List<ILexeme> _triviaLexemes;
         private readonly List<ErrorToken> _currentErrorTokens;
         private readonly List<ErrorToken> _errors;
-        private readonly List<(ILexeme, List<INormalState>)> _listOfTokens;
+        public List<(ILexeme, List<INormalState>)> _listOfTokens;
         private readonly ConsoleWriter _writer; 
 
         public IReadOnlyList<ErrorToken> Errors => _errors;
@@ -77,6 +77,8 @@ namespace Library.Analyzer.Runtime
             _writer = writer;
             RegisterDefaultLexemeFactories(_lexemeFactoryRegistry);
             Position = -1;
+            //вывести все токены
+            
         }
 
         /// <summary>

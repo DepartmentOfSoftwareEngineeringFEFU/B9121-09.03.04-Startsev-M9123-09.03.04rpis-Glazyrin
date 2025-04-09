@@ -34,6 +34,7 @@ namespace Library.General.NameTable
         }
 
         public List<BaseNameElement> GetUndefidedNames()
+        
         {
             var list = new List<BaseNameElement>();
 
@@ -41,10 +42,17 @@ namespace Library.General.NameTable
             {
                 if (element.Value is MainNameValue mainNameValue)
                 {
+                    //if (mainNameValue.GetUndefinedType() == UndefinedType.Set_String)
+                    //    list.Add(element);
+                    //else if (mainNameValue.GetUndefinedType() == UndefinedType.Undefined_Sets
+                    //    && element.Prefix.PrefixCouples.Count > 0)
+                    //    list.Add(element);
+                    //else if (element.Prefix.PrefixCouples.Count > 0)
+                    //    list.Add(element);
+
                     if (mainNameValue.GetUndefinedType() == UndefinedType.Set_String)
                         list.Add(element);
-                    else if (mainNameValue.GetUndefinedType() == UndefinedType.Undefined_Sets
-                        && element.Prefix.PrefixCouples.Count > 0)
+                    else if (mainNameValue.GetUndefinedType() == UndefinedType.Undefined_Sets)
                         list.Add(element);
                     else if (element.Prefix.PrefixCouples.Count > 0)
                         list.Add(element);
@@ -85,7 +93,7 @@ namespace Library.General.NameTable
             StringBuilder builder = new StringBuilder();
             builder.AppendLine($"Таблица ::: {Name} ::: Таблица");
             foreach (var element in _elements)
-                builder.AppendLine(element.ToString());
+                builder.AppendLine($"Тип:  {element.NameElementType}   ID: {element.ID} Prefix: {element.Prefix}  Value: {element.Value} ");
             return builder.ToString();
         }
 

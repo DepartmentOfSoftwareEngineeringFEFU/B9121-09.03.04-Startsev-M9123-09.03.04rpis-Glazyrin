@@ -9,6 +9,8 @@ namespace Library.General.NameTable
     public enum NameElementType
     {
         AdditionalName,
-        MainName
+        MainName,
+        Params,
+        Constructor
     }
 }

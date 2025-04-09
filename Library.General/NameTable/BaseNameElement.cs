@@ -52,6 +52,29 @@ namespace Library.General.NameTable
             return element.GetHashCode() == GetHashCode();
         }
 
+        public string GetStringAsContent()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            if (Value is MainNameValue)
+            {
+                if (Prefix.PrefixCouples.Count != 0)
+                {
+                    builder.Append(Prefix.ToString());
+                }
+
+                builder.Append($" Sort {ID}:{Value.ToString()};\n");
+            }
+
+            if (Value is AdditionalNameValue)
+            {
+                builder.Append($" {ID}=");
+                builder.Append(Value.ToString());
+                builder.Append(";\n");
+            }
+
+            return builder.ToString();
+        }
         public override string ToString() => $"{NameElementType.ToString()} ==> {Prefix.ToString()} {ID} {Value.ToString()}";
 
     }

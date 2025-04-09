@@ -79,6 +79,7 @@ namespace Library.Analyzer.Forest
             StringBuilder stringBuilder = new StringBuilder();
             foreach (var child in _children)
             {
+                stringBuilder.Append("Is from stringbuilder");
                 stringBuilder.Append("  " + child.ToString());
             }
             return stringBuilder.ToString();

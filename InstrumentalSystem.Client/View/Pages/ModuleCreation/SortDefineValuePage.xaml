@@ -22,7 +22,7 @@
                 <ComboBox Name="TypesComboBox" BorderThickness="0" Foreground="{StaticResource black 1}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <Label Content="{Binding Token.Capture}" Foreground="{StaticResource black 1}"/>
+                            <Label Content="{Binding}" Foreground="{StaticResource black 1}"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                     <!--<ComboBox.ItemContainerStyle>

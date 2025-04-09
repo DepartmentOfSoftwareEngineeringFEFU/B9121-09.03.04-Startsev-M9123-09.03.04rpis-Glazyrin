@@ -24,9 +24,18 @@ namespace Library.General.Workspace
                     return UndefinedType.Undefined_Sets;
                 }
             }
+            //добавленые мной множества
             foreach (var element in Value)
             {
-                if (element.Token.TokenType.Id.Equals("STRING"))
+                if (element.Token.TokenType.Id.Equals("REAL_S") || element.Token.TokenType.Id.Equals("INT_S"))
+                {
+                    return UndefinedType.Undefined_Sets;
+                }
+            }
+
+            foreach (var element in Value)
+            {
+                if (element.Token.TokenType.Id.Equals("STRING_S"))
                 {
                     return UndefinedType.Set_String;
                 }

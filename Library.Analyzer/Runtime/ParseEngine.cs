@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Library.Analyzer.Utilities;
 using Library.Analyzer.Diagnostics;
 using Library.Analyzer.Automata;
+using System.IO;
 
 namespace Library.Analyzer.Runtime
 {
@@ -22,6 +23,7 @@ namespace Library.Analyzer.Runtime
         public ParseEngineOptions Options { get; private set; }
 
         public IStateFactory StateFactory { get; private set; }
+        public HashSet<string> visitedNodes = new HashSet<string>(); 
 
         private const string PredictionLogName = "Predict";
         private const string StartLogName = "Start";
@@ -99,12 +101,20 @@ namespace Library.Analyzer.Runtime
                 var completion = lastSet.Completions[c];
                 if (completion.DottedRule.Production.LeftHandSide.Equals(start) && completion.Origin == 0)
                 {
+                    //написать логику вывода нод в файл
+                    string filePath = "C:/Users/denst/OneDrive/Рабочий стол/fromGetParseForestRootNode.txt";
+
+                    // Используйте StreamWriter для записи информации в файл
+                    using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                    {
+                        writer.WriteLine(completion.ParseNode.ToString());
+                    }
+
                     return completion.ParseNode as IInternalForestNode;
                 }
             }
             return null;
         }
-
 
         public bool IsAccepted()
         {
@@ -355,6 +365,8 @@ namespace Library.Analyzer.Runtime
                 else
                     resume = false;
             }
+
+            LogEarleySet(location, earleySet);
         }
 
         private void Predict(INormalState evidence, int j)
@@ -754,5 +766,185 @@ namespace Library.Analyzer.Runtime
             if (Options.LoggingEnabled)
                 Debug.WriteLine($"{GetOriginStateOperationString("Error", origin, state)} \"{token.Capture}\"");
         }
+
+        public void OutputParseTree()
+        {
+            if (!IsAccepted())
+            {
+                Console.WriteLine("Parsing not accepted. No parse tree available.");
+                return;
+            }
+
+            var rootNode = GetParseForestRootNode();
+            if (rootNode == null)
+            {
+                Console.WriteLine("Root node is null.");
+                return;
+            }
+
+            PrintParseTree(rootNode, 0);
+        }
+
+        private void PrintParseTree(IForestNode node, int level)
+        {
+
+            string filePath = "C:/Users/denst/OneDrive/Рабочий стол/tree.txt";
+
+            // Используйте StreamWriter для записи информации в файл
+
+            if (node == null || visitedNodes.Contains(node.ToString()))
+                return;
+
+            if (node is ISymbolForestNode symbolNod)
+            {
+                if (visitedNodes.Contains($"Symbol: {symbolNod.ToString()} Value: {symbolNod.Symbol} {symbolNod.Origin} {symbolNod.Location}"))
+                    return;
+            }
+            else if (node is IIntermediateForestNode intermediateNod)
+            {
+                if (visitedNodes.Contains($"Intermediate Node {intermediateNod.ToString()} {intermediateNod.Origin} {intermediateNod.Location}"))
+                    return;
+            }
+            else if (node is ITokenForestNode tokenNod)
+            {
+                if (visitedNodes.Contains($"Token: {tokenNod.Token.Capture} {tokenNod.Origin} {tokenNod.Location}"))
+                    return;
+            }
+            else if (node is ITerminalForestNode terminalNod)
+            {
+                if (visitedNodes.Contains($"Terminal: {terminalNod.ToString()} {terminalNod.Origin} {terminalNod.Location}"))
+                    return;
+            }
+
+            // Build indentation based on the level
+            string indentation = new string(' ', level * 2);
+
+            // Determine the node type and print appropriate information
+            if (node is ISymbolForestNode symbolNode)
+            {
+                visitedNodes.Add($"Symbol: {symbolNode.ToString()} Value: {symbolNode.Symbol} {symbolNode.Origin} {symbolNode.Location}");
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    writer.WriteLine($"{indentation}Symbol: {symbolNode.ToString()}");
+                }
+                //Console.WriteLine($"{indentation}Symbol: {symbolNode.Symbol.ToString()}");
+                foreach (var child in symbolNode.Children)
+                {
+                    
+                    //PrintParseTree(childForestNode, level + 1);
+                    PrintAndNode(child, level + 1);
+                }
+            }
+            else if (node is IIntermediateForestNode intermediateNode)
+            {
+                visitedNodes.Add($"Intermediate Node {intermediateNode.ToString()} {intermediateNode.Origin} {intermediateNode.Location}");
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    writer.WriteLine($"{indentation}Intermediate: {intermediateNode.ToString()}");
+                }
+                //Console.WriteLine($"{indentation}Intermediate Node");
+                foreach (var child in intermediateNode.Children)
+                {
+
+                    //PrintParseTree(childForestNode, level + 1);
+                    PrintAndNode(child, level + 1);
+                }
+            }
+            else if (node is IAndForestNode andNode)
+            {
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    //writer.WriteLine($"{indentation}And Node {andNode.ToString()}");
+                }
+                //Console.WriteLine($"{indentation}And Node");
+                foreach (var child in andNode.Children)
+                {
+                    PrintParseTree(child, level + 1);
+                }
+            }
+            else if (node is ITokenForestNode tokenNode)
+            {
+                visitedNodes.Add($"Token: {tokenNode.Token.Capture} {tokenNode.Origin} {tokenNode.Location}");
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    writer.WriteLine($"{indentation}Token: {tokenNode.Token.Capture}");
+                }
+                //Console.WriteLine($"{indentation}Token: {tokenNode.Token.Capture}");
+            }
+            else if (node is ITerminalForestNode terminalNode)
+            {
+                visitedNodes.Add($"Terminal: {terminalNode.ToString()} {terminalNode.Origin} {terminalNode.Location}");
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    writer.WriteLine($"{indentation}Terminal: {terminalNode.ToString()}");
+                }
+                //Console.WriteLine($"{indentation}Terminal: {terminalNode.ToString()}");
+            }
+            else
+            {
+                using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+                {
+                    writer.WriteLine($"{indentation}Unknown Node Type");
+                }
+                //Console.WriteLine($"{indentation}Unknown Node Type");
+            }
+
+            // Recursively print children
+            
+        }
+
+        private void PrintAndNode(IAndForestNode node, int level)
+        {
+            string filePath = "C:/Users/denst/OneDrive/Рабочий стол/tree.txt";
+
+            // Используйте StreamWriter для записи информации в файл
+
+            if (node == null || visitedNodes.Contains(node.ToString()))
+                return;
+
+            //visitedNodes.Add(node.ToString());  
+            // Build indentation based on the level
+            string indentation = new string(' ', level * 2);
+
+            using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+            {
+                //writer.WriteLine($"{indentation}IAndForest Node {node.ToString()}");
+            }
+            //Console.WriteLine($"{indentation}Intermediate Node");
+            foreach (var child in node.Children)
+            {
+                PrintParseTree(child, level);
+            }
+        }
+
+        private void LogEarleySet(int location, IEarleySet earleySet)
+        {
+            string filePath = "C:/Users/denst/OneDrive/Рабочий стол/I_sets.txt";
+            using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+            {
+                writer.WriteLine($"Earley Set I{location}:");
+                writer.WriteLine("  Predictions:");
+                foreach (var prediction in earleySet.Predictions)
+                {
+                    writer.WriteLine($"    {prediction}");
+                }
+
+                writer.WriteLine("  Completions:");
+                foreach (var completion in earleySet.Completions)
+                {
+                    writer.WriteLine($"    {completion}");
+                }
+
+                writer.WriteLine("  Scans:");
+                foreach (var scan in earleySet.Scans)
+                {
+                    writer.WriteLine($"    {scan}");
+                }
+
+                writer.WriteLine();
+            }
+        }
+
+
     }
 }

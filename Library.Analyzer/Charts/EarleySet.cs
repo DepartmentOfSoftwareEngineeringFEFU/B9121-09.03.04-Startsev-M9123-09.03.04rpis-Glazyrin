@@ -6,12 +6,12 @@ namespace Library.Analyzer.Charts
 {
     public class EarleySet : IEarleySet
     {
-        private static readonly INormalState[] EmptyNormalStates = { };
-        private static readonly ITransitionState[] EmptyTransitionStates = { };
-        private UniqueList<INormalState> _predictions;
-        private UniqueList<INormalState> _scans;
-        private UniqueList<INormalState> _completions;
-        private UniqueList<ITransitionState> _transitions;
+        public static readonly INormalState[] EmptyNormalStates = { };
+        public static readonly ITransitionState[] EmptyTransitionStates = { };
+        public UniqueList<INormalState> _predictions;
+        public UniqueList<INormalState> _scans;
+        public UniqueList<INormalState> _completions;
+        public UniqueList<ITransitionState> _transitions;
 
         public IReadOnlyList<INormalState> Predictions
         {

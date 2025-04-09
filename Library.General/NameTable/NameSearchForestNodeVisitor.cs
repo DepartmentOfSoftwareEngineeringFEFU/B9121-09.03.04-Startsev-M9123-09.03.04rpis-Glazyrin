@@ -1,10 +1,17 @@
-﻿using Library.Analyzer.Collections;
+﻿using Library.Analyzer.Automata;
+using Library.Analyzer.Collections;
 using Library.Analyzer.Forest;
 using Library.Analyzer.Grammars;
 using Library.General.Workspace;
 using Library.InterfaceConnection.Writers;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
+using Parameter = Library.General.Workspace.Parameter;
 
 namespace Library.General.NameTable
 {
@@ -16,24 +23,26 @@ namespace Library.General.NameTable
         private UniqueList<ITokenForestNode> _nameValue;
         private NameElementType _nameType;
         public ModuleNameTable _nameTable;
-
+        public List<Parameter> _parameters;
 
         public NameSearchForestNodeVisitor(TextBoxWriter streamWriter)
         {
             _visited = new HashSet<IForestNode>();
             _writer = streamWriter;
-            _nameTable = new ModuleNameTable("Test");
+            _nameTable = new ModuleNameTable("Name table");
+            _parameters = new List<Parameter>();
 
         }
 
         public void Visit(ITokenForestNode tokenNode)
         {
-            _visited.Add(tokenNode);
+                _visited.Add(tokenNode);
             return;
         }
         
         public void Visit(IAndForestNode andNode)
         {
+
             for (var i = 0; i < andNode.Children.Count; i++)
             {
                 var child = andNode.Children[i];
@@ -43,8 +52,10 @@ namespace Library.General.NameTable
 
         public void Visit(IIntermediateForestNode node)
         {
+
             if (!_visited.Add(node))
                 return;
+       
 
             for (var i = 0; i < node.Children.Count; i++)
             {
@@ -55,42 +66,82 @@ namespace Library.General.NameTable
 
         public void Visit(ISymbolForestNode node)
         {
-            string info = "Type: " + node.NodeType + " String: " + node.ToString();
-            Console.WriteLine(info);
-
             if (!_visited.Add(node))
                 return;
 
             if (node.Symbol is INonTerminal nonTerminal)
-                if (nonTerminal.Value.Equals("Main_Name") ||
-                    nonTerminal.Value.Equals("Additional_Name"))
-                {
-                    Print();
-                    _name = (ISymbolForestNode)node;
-                    _nameValue = new UniqueList<ITokenForestNode>();
-                    _nameType = (nonTerminal.Value.Equals("Main_Name")) ? NameElementType.MainName : NameElementType.AdditionalName;
-                }
-                else if (nonTerminal.Value.Equals("Limit") ||
-                    nonTerminal.Value.Equals("Params") ||
-                    nonTerminal.Value.Equals("Constructs"))
-                {
-                    Print();
-                    _name = null;
-                    _nameValue = null;
-                }
-
-            for (var a = 0; a < node.Children.Count; a++)
             {
-                var andNode = node.Children[a];
-                for (var c = 0; c < andNode.Children.Count; c++)
+                HandleNode(node, nonTerminal);
+            }
+
+            ProcessChildren(node);
+        }
+
+        private void HandleNode(ISymbolForestNode node, INonTerminal nonTerminal)
+        {
+            if (nonTerminal.Value.Equals("Main_Name") || nonTerminal.Value.Equals("Additional_Name"))
+            {
+                HandleMainNameNode(node, nonTerminal);
+            }
+            else if (nonTerminal.Value.Equals("Limit") || nonTerminal.Value.Equals("Param") || nonTerminal.Value.Equals("Constructs"))
+            {
+                HandleParameterNode(node);
+            }
+        }
+
+        private void HandleMainNameNode(ISymbolForestNode node, INonTerminal nonTerminal)
+        {
+            Print();
+
+            _name = node;
+            _nameValue = new UniqueList<ITokenForestNode>();
+            _nameType = nonTerminal.Value.Equals("Main_Name") ? NameElementType.MainName : NameElementType.AdditionalName;
+        }
+
+        private void HandleParameterNode(ISymbolForestNode node)
+        {
+            Print();
+
+            var childNodes = GetChildNodes(node);
+            ExtractParamsAndConstruct(childNodes);
+
+        }
+
+        private List<IForestNode> GetChildNodes(ISymbolForestNode node)
+        {
+            var childNodes = new List<IForestNode>();
+
+            foreach (var andNode in node.Children)
+            {
+                foreach (var child in andNode.Children)
                 {
-                    var child = andNode.Children[c];
+                    if (child is ITokenForestNode tokenNode)
+                    {
+                        childNodes.Add(tokenNode);
+                    }
+                    else if (child is IIntermediateForestNode intermediateNode)
+                    {
+                        var flattened = GetFlattenedList(intermediateNode);
+                        childNodes.AddRange(flattened.OfType<ITokenForestNode>());
+                    }
+                }
+            }
+
+            return childNodes;
+        }
+
+        private void ProcessChildren(ISymbolForestNode node)
+        {
+            foreach (var andNode in node.Children)
+            {
+                foreach (var child in andNode.Children)
+                {
                     CheckChild(child);
                 }
-            }    
-            for (var i = 0; i < node.Children.Count; i++)
+            }
+
+            foreach (var child in node.Children)
             {
-                var child = node.Children[i];
                 Visit(child);
             }
         }
@@ -128,7 +179,6 @@ namespace Library.General.NameTable
             }
         }
 
-
         private static IList<IForestNode> GetFlattenedList(IIntermediateForestNode intermediate)
         {
             var children = new List<IForestNode>();
@@ -153,26 +203,52 @@ namespace Library.General.NameTable
             return children;
         }
 
-        private void Print()
+        public void ExtractParamsAndConstruct(List<IForestNode> tokens)
+        {      
+
+            if (tokens.Count == 3 || tokens.Count == 5)
+            {
+                ITokenForestNode tokenId = (ITokenForestNode)tokens[1];
+                string idValue = tokenId.Token.Capture.ToString();
+
+                int? levelValue = null;
+                if (tokens.Count == 5)
+                {
+                    ITokenForestNode tokenLevel = (ITokenForestNode)tokens[3];
+                    if (int.TryParse(tokenLevel.Token.Capture.ToString(), out int parsedLevel))
+                    {
+                        levelValue = parsedLevel;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Невозможно преобразовать tokenLevel в число.");
+                        //выкидавать throw в окно под редактором кода если уровень это не число, или он больше чем уровень модуля
+                    }
+                }
+
+                _parameters.Add(levelValue.HasValue
+                    ? new Parameter(idValue, levelValue.Value)
+                    : new Parameter(idValue));
+            }
+
+            _name = null;
+            _nameValue = null;
+
+        }
+
+        public void Print()
         {
+
             if (_name == null || _nameValue == null)
                 return;
             SortList();
             List<PrefixCouple> prefixes = PrefixParse();
             List<ITokenForestNode> value = ValueParse();
-            //_writer.Write(GetSymbolNodeString(_name));
-            //_writer.Write(" ->");
-            foreach (var element in _nameValue)
-            {
 
-                //_writer.Write(" ");
-                //_writer.Write(GetTokenNodeString(element));
-            }
-           // _writer.WriteLine();
             _nameTable.AddName(_nameType, prefixes,
                 IdNameParse().Token.Capture.ToString(), value);
             ClearNameInfo();
-            
+
         }
 
         private void ClearNameInfo()
@@ -232,6 +308,11 @@ namespace Library.General.NameTable
             }
             return prefixes;
         }
+
+        //private List<ITokenForestNode> ParseParamsAndConstructValue()
+        //{
+
+        //}
 
         private List<ITokenForestNode> ValueParse()
         {

@@ -23,19 +23,27 @@ namespace InstrumentalSystem.Client.View.Pages.ModuleCreation
     public partial class SortDefineValuePage : Page
     {
         public BaseNameElement _name;
-        private List<ITokenForestNode> _list;
+        private List<String> _list;
         public SortDefineValuePage(BaseNameElement name)
         {
             InitializeComponent();
             _name = name;
-            _list = new List<ITokenForestNode>();
+            _list = new List<String>();
+
             foreach (var element in _name.Value.Value)
-                if (element.Token.TokenType.Id.Equals("STRING") ||
-                    element.Token.TokenType.Id.Equals("INT") ||
-                    element.Token.TokenType.Id.Equals("REAL"))
-                    _list.Add(element);
+                if ((element.Token.TokenType.Id.Equals("STRING_S") ||
+                    element.Token.TokenType.Id.Equals("INT_S") ||
+                    element.Token.TokenType.Id.Equals("REAL_S")) &&
+                    !_list.Contains(element.Token.Capture.ToString()))
+                {
+                    _list.Add(element.Token.Capture.ToString());
+                }
+
             Task.Content = $"{_name.Prefix.ToString().Replace("\r", "")} Sort {_name.ID.Replace("\r", "")} : {_name.Value.ToString()}";
             TypesComboBox.ItemsSource = _list;
+            if (_list.Count == 1) TypesComboBox.SelectedItem = _list[0];
+            TypesComboBox.Visibility = Visibility.Visible;
         }
+
     }
 }

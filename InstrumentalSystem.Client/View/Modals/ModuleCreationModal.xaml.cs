@@ -1,12 +1,15 @@
 ﻿using InstrumentalSystem.Client.Logic.Config;
 using InstrumentalSystem.Client.Logic.Task;
 using InstrumentalSystem.Client.View.Pages.ModuleCreation;
+using Library.Analyzer.Automata;
+using Library.Analyzer.Collections;
 using Library.Analyzer.Forest;
 using Library.General.NameTable;
 using Library.General.Project;
 using Library.General.Workspace;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +25,7 @@ namespace InstrumentalSystem.Client.View.Modal
         private List<BaseNameElement> _undefinedNames;
         private List<BaseNameElement> _taskNames;
         private ModuleNameTable _nameTable;
+        private List<Parameter> _parameters;
         private int _count;
         private int _additionalCount;
         private LogicModuleNamespace _moduleNamespace;
@@ -29,7 +33,7 @@ namespace InstrumentalSystem.Client.View.Modal
         private Editor _parentWindow;
         private Dictionary<string, List<string>> _addedValues;
         StringBuilder _sorts = new StringBuilder();
-        public ModuleCreationModal(Editor parentWindow, IModuleNameTable? nameTable)
+        public ModuleCreationModal(Editor parentWindow, IModuleNameTable? nameTable, List<Parameter>? parameters)
         {
             InitializeComponent();
             _parentWindow = parentWindow;
@@ -38,7 +42,13 @@ namespace InstrumentalSystem.Client.View.Modal
                 {
                     _undefinedNames = moduleNameTable.GetUndefidedNames();
                     _nameTable = moduleNameTable;
-                }  
+                }
+
+            if (parameters != null)
+            {
+                _parameters = parameters;
+            }
+
             _taskNames = new List<BaseNameElement>();          
             _tasks = new List<ModuleCreationTask>();
             _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SetModuleName));
@@ -65,7 +75,7 @@ namespace InstrumentalSystem.Client.View.Modal
                 UpdateAdditionalTasks();
             else
                 UpdateTasks();
-            
+
 
             _count++;
             if (_count == _tasks.Count)
@@ -75,7 +85,23 @@ namespace InstrumentalSystem.Client.View.Modal
                 {
                     _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(
                         $"{_sorts.ToString()}" +
-                        $"End;");
+                        $"End;\n");
+
+                    if(_parameters.Count != 0)
+                    {
+                        foreach (var param in _parameters)
+                        {
+                            if (param.level > 0)
+                            {
+                                _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent($"Param {param.id}: {param.level};\n");
+                            }
+                            else
+                            {
+                                _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent($"Param {param.id};");
+                            }
+                        }
+                    }
+
                     ClientConfig.Project.Add(_moduleNamespace.Name, _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}"));
                 }
                 else
@@ -143,7 +169,7 @@ namespace InstrumentalSystem.Client.View.Modal
                         _moduleNamespace.GetLevel($"Уровень {namePage.LevelTextBox.Text}").SetContent(
                             $"Module {namePage.NameTextBox.Text}: {namePage.LevelTextBox.Text};\n" +
                             $"Begin\n" +
-                            $"\n" +
+                            $" \n" +
                             $"End;\n");
                         #pragma warning restore CS8602
                     }
@@ -173,7 +199,7 @@ namespace InstrumentalSystem.Client.View.Modal
             if (TaskPage.Content is SortSetValuePage sortValuePage)
             {
                 var isSortsNeeded = IsNeedInDefineSorts(sortValuePage._name.ID);
-                StringBuilder builder = new StringBuilder($"{sortValuePage._name.ID} = ");
+                StringBuilder builder = new StringBuilder($" {sortValuePage._name.ID} = ");
                 builder.Append("{");
                 foreach (var line in sortValuePage.NamesTextBox.Text.Split("\n"))
                 {
@@ -194,16 +220,15 @@ namespace InstrumentalSystem.Client.View.Modal
                                     }
                                     else
                                     {
-                                        _sorts.AppendLine($"Sort {line.Replace("\r", "")}: {sort.Value.ToString()};");
+                                        _sorts.AppendLine($" Sort {line.Replace("\r", "")}: {sort.Value.ToString()};");
                                     }
                                 }
                             }
-                        
                     }
                 }
+
                 _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(
-                    $"{builder.ToString().Substring(0, builder.ToString().Length - 2)}" + "};\n"
-                    );
+                    $"{builder.ToString().Substring(0, builder.ToString().Length - 2)}" + "};\n");
             }
         }
 
@@ -211,7 +236,7 @@ namespace InstrumentalSystem.Client.View.Modal
         {
             if (TaskPage.Content is SortDefineValuePage sortValuePage)
             {
-                _sorts.AppendLine($"Sort {sortValuePage._name.ID.Replace("\r", "")}: {((ITokenForestNode)sortValuePage.TypesComboBox.SelectedItem).Token.Capture.ToString()};");
+                _sorts.AppendLine($" Sort {sortValuePage._name.ID.Replace("\r", "")}: {(String)sortValuePage.TypesComboBox.SelectedItem};");
             }
         }
 
@@ -249,19 +274,97 @@ namespace InstrumentalSystem.Client.View.Modal
 
         private void SetModule()
         {
-            foreach (var task in _undefinedNames)
+
+            bool isHaveMainValueWithTypeSetString = false;
+
+            UniqueList<BaseNameElement>? completedTasks = new UniqueList<BaseNameElement>();
+            if (_parameters.Count != 0)
             {
-                if (task.Prefix.PrefixCouples.Count == 0)
+                List<Parameter> currentLevelParameters = new List<Parameter>();
+
+                foreach (var parameter in _parameters)
                 {
-                    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
-                    _taskNames.Add(task);
+                    if (parameter.level == _parent.GetLevel())
+                    {
+                        currentLevelParameters.Add(parameter);
+                    }
+                }
+
+                if (currentLevelParameters.Count != 0)
+                {
+
+                    foreach (var parameter in currentLevelParameters)
+                    {
+                        _parameters.Remove(parameter);
+                    }
+
+                    foreach (var parameter in currentLevelParameters)
+                    {
+                        List<IValue> currentLevelBasedCouples = new List<IValue>();
+
+                        foreach (var task in _undefinedNames)
+                        {
+                            if (task.Prefix.PrefixCouples.Count == 0)  continue;
+
+                            foreach (var couple in task.Prefix.PrefixCouples)
+                            {
+                                if (couple.LeftPart.Equals(parameter.id))
+                                {
+                                    completedTasks.Add(task);
+                                    currentLevelBasedCouples.Add(couple.RightPart);
+                                }
+                            }
+                        }
+
+                        if (currentLevelBasedCouples.Count == 0) continue;
+
+                        foreach (var task in _undefinedNames)
+                        {
+                            foreach (var basedCouple in currentLevelBasedCouples)
+                            {
+
+                                string task_id = task.ID;
+                                string bc = basedCouple.Value.ToString();
+                                if (task.ID.Equals(basedCouple.Value[0].Token.Capture.ToString()) && task.Value is MainNameValue mainNameValue && mainNameValue.GetUndefinedType() == UndefinedType.Set_String)
+                                {
+                                    isHaveMainValueWithTypeSetString = true;
+                                    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+                                    _taskNames.Add(task);
+                                    completedTasks.Add(task);
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            //все понятия и таски, которые должны унаследоваться (не входят в completedTasks)
+
+            foreach (var task in _nameTable.Elements)
+            {
+                if (isHaveMainValueWithTypeSetString)
+                {
+                    if (!completedTasks.Contains(task))
+                    {
+                        _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(task.GetStringAsContent());
+
+                    }
                 }
                 else
                 {
-                    
-                    //_tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetName));
+                    _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(task.GetStringAsContent());
                 }
             }
+            //_moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").SetContent()
+            
+
+            //параметры
+
+
+            //конструкторы
+
+            //limit
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
