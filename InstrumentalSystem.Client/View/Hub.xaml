@@ -126,7 +126,8 @@
 
 
                     <!--Совместные проекты-->
-                    <TabItem FontSize="18" FontWeight="Bold" Foreground="{StaticResource black 1}" IsEnabled="False" Name="GlobalProjectsTab">
+                    <TabItem FontSize="18" FontWeight="Bold" Foreground="{StaticResource black 1}" 
+                             Name="GlobalProjectsTab">
 
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal">

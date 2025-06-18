@@ -121,40 +121,39 @@ namespace InstrumentalSystem.Client.View
                 _engine?.OutputParseTree();
             }
 
+            //string filePathToken = "C:/Users/denst/OneDrive/Рабочий стол/tokens.txt";
 
-            string filePathToken = "C:/Users/denst/OneDrive/Рабочий стол/tokens.txt";
+            //// Используйте StreamWriter для записи информации в файл
+            //using (StreamWriter writerer = new StreamWriter(filePathToken, true)) // true для добавления в конец файла
+            //{
+            //    //writer.WriteLine(log._nameTable.ToString());
+            //    foreach (var token in scanner._listOfTokens)
+            //    {
+            //        ILexeme lexeme = token.Item1;
 
-            // Используйте StreamWriter для записи информации в файл
-            using (StreamWriter writerer = new StreamWriter(filePathToken, true)) // true для добавления в конец файла
-            {
-                //writer.WriteLine(log._nameTable.ToString());
-                foreach (var token in scanner._listOfTokens)
-                {
-                    ILexeme lexeme = token.Item1;
+            //        if (token.Item1 is DfaLexeme)
+            //        {
+            //            DfaLexeme lex = (DfaLexeme)token.Item1;
+            //            writerer.WriteLine($"Lexeme:  {lex.Capture.ToString()}");
+            //        }
 
-                    if (token.Item1 is DfaLexeme)
-                    {
-                        DfaLexeme lex = (DfaLexeme)token.Item1;
-                        writerer.WriteLine($"Lexeme:  {lex.Capture.ToString()}");
-                    }
+            //        if (token.Item1 is StringLiteralLexeme)
+            //        {
+            //            StringLiteralLexeme lex = (StringLiteralLexeme)token.Item1;
+            //            writerer.WriteLine($"Lexeme:  {lex.Capture.ToString()}");
+            //        }
+            //        List<INormalState> states = token.Item2;
 
-                    if (token.Item1 is StringLiteralLexeme)
-                    {
-                        StringLiteralLexeme lex = (StringLiteralLexeme)token.Item1;
-                        writerer.WriteLine($"Lexeme:  {lex.Capture.ToString()}");
-                    }
-                    List<INormalState> states = token.Item2;
-
-                    // Записываем значение лексемы
+            //        // Записываем значение лексемы
                     
 
-                    // Записываем состояния
-                    foreach (var state in states)
-                    {
-                        writerer.WriteLine($"  State: {state.ToString()}");
-                    }
-                }
-            }
+            //        // Записываем состояния
+            //        foreach (var state in states)
+            //        {
+            //            writerer.WriteLine($"  State: {state.ToString()}");
+            //        }
+            //    }
+            //}
 
             if (Console.Document.Blocks.Count > 0)
                 return;
@@ -163,16 +162,16 @@ namespace InstrumentalSystem.Client.View
 
             if (!(_root is null) )
             {
-                string filePathType = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
+                //string filePathType = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
 
                 // Используйте StreamWriter для записи информации в файл
                 string type = _root.GetType().FullName;
 
-                using (StreamWriter writer = new StreamWriter(filePathType, true)) // true для добавления в конец файла
-                {
-                    writer.WriteLine(type);
-                }
-
+                //using (StreamWriter writer = new StreamWriter(filePathType, true)) // true для добавления в конец файла
+                //{
+                //    writer.WriteLine(type);
+                //}
+               
                 log.Visit((ISymbolForestNode)_root);
                 _nameTable = log._nameTable;
                 _parameters = log._parameters;
@@ -184,14 +183,13 @@ namespace InstrumentalSystem.Client.View
 
             //если не раскомментировать верхнюю строку, то алгоритм не доходит до конца и не читает последний символ(узел)
 
-            string filePath = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
-
-            // Используйте StreamWriter для записи информации в файл
-            using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
-            {
-                writer.WriteLine(log._nameTable.ToString());
-            }
-
+            //string filePath = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
+           
+            //// Используйте StreamWriter для записи информации в файл
+            //using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+            //{
+            //    writer.WriteLine(log._nameTable.ToString());
+            //}
         }
 
         private void CodeEditor_TextChanged(object sender, TextChangedEventArgs e)
