@@ -12,10 +12,10 @@ namespace InstrumentalSystem.Client.Logic.Config
     {
         public static Project Project { get; set; }
         
-        public static User User { get; set; }
+        public static UserInfo User { get; set; }
 
         public static void SetProject(Project project) => Project = project;
 
-        public static void SetUser(User user) => User = user;
+        public static void SetUser(UserInfo user) => User = user;
     }
 }

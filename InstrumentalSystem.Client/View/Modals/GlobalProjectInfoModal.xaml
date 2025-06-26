@@ -43,13 +43,13 @@
                     <DockPanel LastChildFill="False">
                         <Label Content="Имя проекта:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
                                HorizontalAlignment="Left" FontSize="20"/>
-                        <TextBlock Margin="5 0 0 0" HorizontalAlignment="Left" Text="Проверка прав" DockPanel.Dock="Top" FontSize="20" Foreground="{StaticResource black 2}" 
+                        <TextBlock Margin="5 0 0 0" HorizontalAlignment="Left" Text="{Binding ProjectName}" DockPanel.Dock="Top" FontSize="20" Foreground="{StaticResource black 2}" 
                                    TextTrimming="CharacterEllipsis" Name="ProjectNameLabel"/>
                         <Label Content="Владелец проекта:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
                                HorizontalAlignment="Left" FontSize="20"/>
                         <TextBlock Margin="5 0 0 0" VerticalAlignment="Center" DockPanel.Dock="Top" FontSize="20">
                         <Hyperlink Foreground="{StaticResource main 1}">
-                             <TextBlock Text="wrap2"/>
+                             <TextBlock Text="{Binding Owner}"/>
                         </Hyperlink>
                          </TextBlock>
                         <TextBlock Margin="5 10 0 0" HorizontalAlignment="Left" Text="Последние изменения: 29.06.2022" DockPanel.Dock="Top" FontSize="20" Foreground="{StaticResource black 2}" 
