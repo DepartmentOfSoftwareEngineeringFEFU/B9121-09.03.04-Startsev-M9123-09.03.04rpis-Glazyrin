@@ -160,16 +160,20 @@
                                           Click="OpenProjectButton_Click"/>
                                 <MenuItem Header="_Сохранить модуль" x:Name="SaveModuleButton"
                                           Click="SaveModuleButton_Click"/>
-                                <MenuItem Header="_Сохранить проект" x:Name="SaveProjectButton"
-                                          Click="SaveProjectButton_Click"/>
+                                <MenuItem Header="_Сохранить проект">
+                                    <MenuItem Header="_На сервер" x:Name="SaveServerProjectButton"
+                                          Click="SaveServerProjectButton_Click"/>
+                                    <MenuItem Header="_На компьютер" x:Name="SaveProjectButton"
+                                         Click="SaveProjectButton_Click" />
+                                </MenuItem>
                                 <MenuItem Header="_Добавить модуль">
                                     <MenuItem Header="_С сервера" />
                                     <MenuItem Header="_С компьютера" 
                                               Click="AddModuleFromComputer_Click"/>
                                 </MenuItem>
-                                <MenuItem Header="_Импортировать модуль"/>
-                                <MenuItem Header="_Пользователи проекта"/>
-                                <MenuItem Header="_Экспорт"/>
+                                <!-- <MenuItem Header="_Импортировать модуль" />
+                                <MenuItem Header="_Пользователи проекта" />
+                                <MenuItem Header="_Экспорт" />-->
                             </MenuItem>
 
                             <MenuItem Header="_Правка" ItemContainerStyle="{StaticResource menu item 2}">

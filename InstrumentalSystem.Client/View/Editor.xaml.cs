@@ -25,6 +25,7 @@ using System.Windows.Controls;
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace InstrumentalSystem.Client.View
 {
@@ -358,6 +359,19 @@ namespace InstrumentalSystem.Client.View
                             return;
                         }
 
+        }
+
+        private async void SaveServerProjectButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string modulesJson = GetAllModulesAsJson();
+
+                using (var client = new HttpClient())
+                {
+                    var content = new StringContent(modulesJson, Encoding.UTF8, "application/json");
+                    var response = await client.PostAsync("https://your-api-endpoint.com/save", content);
+
                         levelNamespace.Levels.Add(newModule);
 
                         tvLogicModules.Items.Refresh();
@@ -404,6 +418,45 @@ namespace InstrumentalSystem.Client.View
         {
             public string Name { get; set; }
             public int Level { get; set; }
+                    if (response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show("Модули успешно сохранены на сервере");
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Ошибка: {response.StatusCode}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+            }
+        }
+
+        private string GetAllModulesAsJson()
+        {
+            var modules = new List<ModuleJsonModel>();
+
+            // Проходим по всем пространствам имен и модулям
+            foreach (var namespaceItem in _project.Namespaces)
+            {
+                // Если используется структура с Level
+                if (namespaceItem is LogicModuleNamespace logicNamespace)
+                {
+                    foreach (var level in logicNamespace.Levels)
+                    {
+                        modules.Add(new ModuleJsonModel
+                        (
+                            level.Id,
+                            level.Name,
+                            level.Content
+                        ));
+                    }
+                }
+            }
+
+            return JsonConvert.SerializeObject(modules, Formatting.Indented);
         }
     }
 }
