@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\InstrumentalSystem\Library.InterfaceConnection\Library.InterfaceConnection.csproj" />
+	  <ProjectReference Include="..\Library.InterfaceConnection\Library.InterfaceConnection.csproj" />
   </ItemGroup>
 
 </Project>

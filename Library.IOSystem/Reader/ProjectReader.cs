@@ -29,18 +29,29 @@ namespace Library.IOSystem.Reader
         public static List<ProjectInfo> ReadProjectsInfo()
         {
             List<ProjectInfo> result = new List<ProjectInfo>();
-            var projects = File.ReadAllText(System.IO.Path.Combine(Directory.GetCurrentDirectory(), "user.data")).Split("\n");
-            foreach(var project in projects)
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "user.data");
+
+            if (!File.Exists(filePath))
             {
-                if (project.Length == 0)
-                    break;
-                var parseProjectPath = project.Split("\\");
-                result.Add(new ProjectInfo(
-                        parseProjectPath.Last(),
-                        project,
-                        $"Последние изменения:\n {File.GetLastWriteTime(project).ToString()}"
-                    ));
+                File.Create(filePath).Dispose();
+                return result;
             }
+
+            var projects = File.ReadAllText(filePath).Split('\n');
+
+            foreach (var project in projects)
+            {
+                if (string.IsNullOrWhiteSpace(project))
+                    continue;
+
+                var parseProjectPath = project.Split('\\');
+                result.Add(new ProjectInfo(
+                    parseProjectPath.Last(),
+                    project,
+                    $"Последние изменения:\n{File.GetLastWriteTime(project)}"
+                ));
+            }
+
             return result;
         }
 
