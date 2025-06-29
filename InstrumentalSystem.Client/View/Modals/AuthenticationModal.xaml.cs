@@ -49,7 +49,7 @@ namespace InstrumentalSystem.Client.View.Modals
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
-            AuthenticationFrame.Content = new AuthenticationPage(this);
+            AuthenticationFrame.Content = new AuthenticationPage(this);  
         }
     }
 }

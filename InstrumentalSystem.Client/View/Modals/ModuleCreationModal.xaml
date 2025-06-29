@@ -38,7 +38,7 @@
                 <ListView Margin="0 5 0 0" Style="{StaticResource list view}" Grid.Row="1" x:Name="TaskList">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="{x:Type ListViewItem}" BasedOn="{StaticResource task list item}">
-                            <Setter Property="Content"  Value="{Binding Task}"/>
+                            <Setter Property="Content"  Value="{Binding TaskName}"/>
                             <Setter Property="IsEnabled"  Value="{Binding InProgress}"/>
                         </Style>
                     </ListView.ItemContainerStyle>

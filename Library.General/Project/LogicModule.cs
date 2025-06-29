@@ -41,6 +41,7 @@ namespace Library.General.Project
             Content += content;
         }
 
+
         private int ComputeHashCode() => Utilities.HashCode.Compute(Name.GetHashCode());
 
         public override int GetHashCode() => _hashCode;

@@ -101,14 +101,6 @@ namespace Library.Analyzer.Runtime
                 var completion = lastSet.Completions[c];
                 if (completion.DottedRule.Production.LeftHandSide.Equals(start) && completion.Origin == 0)
                 {
-                    //написать логику вывода нод в файл
-                    string filePath = "C:/Users/denst/OneDrive/Рабочий стол/fromGetParseForestRootNode.txt";
-
-                    // Используйте StreamWriter для записи информации в файл
-                    using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
-                    {
-                        writer.WriteLine(completion.ParseNode.ToString());
-                    }
 
                     return completion.ParseNode as IInternalForestNode;
                 }

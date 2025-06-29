@@ -8,6 +8,7 @@
       d:DesignHeight="450" d:DesignWidth="800"
       HorizontalAlignment="Stretch"
       VerticalAlignment="Stretch"
+      Background="#FFEEEEEE"  
       Title="RegistrationPage">
 
     <Grid Margin="10">

@@ -56,7 +56,7 @@ namespace Library.General.NameTable
         {
             StringBuilder builder = new StringBuilder();
 
-            if (Value is MainNameValue)
+            if (NameElementType == NameElementType.MainName)
             {
                 if (Prefix.PrefixCouples.Count != 0)
                 {
@@ -66,7 +66,14 @@ namespace Library.General.NameTable
                 builder.Append($" Sort {ID}:{Value.ToString()};\n");
             }
 
-            if (Value is AdditionalNameValue)
+            if (NameElementType == NameElementType.Constructor)
+            {
+                builder.Append($"Construct {ID} =");
+                builder.Append(Value.ToString());
+                builder.Append(";\n");
+            }
+
+            if (NameElementType == NameElementType.AdditionalName)
             {
                 builder.Append($" {ID}=");
                 builder.Append(Value.ToString());

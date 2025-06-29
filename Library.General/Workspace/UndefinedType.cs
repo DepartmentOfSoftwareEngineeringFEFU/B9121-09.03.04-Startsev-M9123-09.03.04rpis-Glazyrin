@@ -10,6 +10,7 @@ namespace Library.General.Workspace
     {
         None,
         Set_String,
-        Undefined_Sets
+        Undefined_Sets,
+        Function
     }
 }

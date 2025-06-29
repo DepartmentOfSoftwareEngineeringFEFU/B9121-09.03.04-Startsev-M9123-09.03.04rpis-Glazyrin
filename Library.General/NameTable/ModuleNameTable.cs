@@ -3,7 +3,9 @@ using Library.Analyzer.Collections;
 using Library.Analyzer.Forest;
 using Library.General.Workspace;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Windows.Controls;
 
 namespace Library.General.NameTable
 {
@@ -33,8 +35,22 @@ namespace Library.General.NameTable
             _elements = new UniqueList<BaseNameElement>();
         }
 
-        public List<BaseNameElement> GetUndefidedNames()
-        
+        public List<BaseNameElement> GetConstructors()
+        {
+            var constructors = new List<BaseNameElement>();
+
+            foreach(var element in _elements)
+            {
+                if (element.NameElementType is NameElementType.Constructor)
+                {
+                    constructors.Add(element);
+                }
+            }
+
+            return constructors;
+        }
+
+        public List<BaseNameElement> GetUndefidedNames()      
         {
             var list = new List<BaseNameElement>();
 
@@ -61,6 +77,11 @@ namespace Library.General.NameTable
 
             return list;
         }
+        public List<BaseNameElement> GetMainNameValuesAsBaseNameElements()
+        {
+            return _elements.Where(element => element.Value is MainNameValue)
+                           .ToList();
+        }       
 
         public void AddNames(IReadOnlyList<BaseNameElement> elements)
         {
@@ -85,7 +106,12 @@ namespace Library.General.NameTable
 
         public void AddName(NameElementType nameElementType, List<PrefixCouple> prefixs, string id, List<ITokenForestNode> value)
         {
-            _elements.Add(new BaseNameElement(nameElementType, prefixs, id, value));
+            if(id != null && value != null)
+            {
+                _elements.Add(new BaseNameElement(nameElementType, prefixs, id, value));
+            }
+
+            
         }
 
         public override string ToString()

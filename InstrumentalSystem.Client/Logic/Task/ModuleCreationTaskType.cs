@@ -13,6 +13,8 @@ namespace InstrumentalSystem.Client.Logic.Task
         BaseOn,
         SortSetName,
         SortDefineValue,
-        SortSetValue
+        SortSetValue,
+        SortConstructCreational,
+        ConstructConfirmation
     }
 }

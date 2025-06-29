@@ -164,7 +164,8 @@
                                           Click="SaveProjectButton_Click"/>
                                 <MenuItem Header="_Добавить модуль">
                                     <MenuItem Header="_С сервера" />
-                                    <MenuItem Header="_С компьютера" />
+                                    <MenuItem Header="_С компьютера" 
+                                              Click="AddModuleFromComputer_Click"/>
                                 </MenuItem>
                                 <MenuItem Header="_Импортировать модуль"/>
                                 <MenuItem Header="_Пользователи проекта"/>

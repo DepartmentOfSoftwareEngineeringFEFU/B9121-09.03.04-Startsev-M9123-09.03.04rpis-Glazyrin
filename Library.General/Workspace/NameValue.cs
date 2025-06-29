@@ -21,8 +21,10 @@ namespace Library.General.Workspace
 
         public NameValue(ITokenForestNode lexeme)
         {
-            _value = new List<ITokenForestNode>();
-            _value.Add(lexeme);
+            _value = new List<ITokenForestNode>
+            {
+                lexeme
+            };
         }
     }
 }

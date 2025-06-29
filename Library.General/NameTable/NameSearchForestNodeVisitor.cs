@@ -6,11 +6,7 @@ using Library.General.Workspace;
 using Library.InterfaceConnection.Writers;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Reflection.Metadata;
-using System.Xml.Linq;
 using Parameter = Library.General.Workspace.Parameter;
 
 namespace Library.General.NameTable
@@ -79,13 +75,20 @@ namespace Library.General.NameTable
 
         private void HandleNode(ISymbolForestNode node, INonTerminal nonTerminal)
         {
-            if (nonTerminal.Value.Equals("Main_Name") || nonTerminal.Value.Equals("Additional_Name"))
+            switch (nonTerminal.Value)
             {
-                HandleMainNameNode(node, nonTerminal);
-            }
-            else if (nonTerminal.Value.Equals("Limit") || nonTerminal.Value.Equals("Param") || nonTerminal.Value.Equals("Constructs"))
-            {
-                HandleParameterNode(node);
+                case "Main_Name":
+                case "Additional_Name":
+                    HandleMainNameNode(node, nonTerminal);
+                    break;
+
+                case "Limit":
+                case "Param":
+                    HandleParameterNode(node, nonTerminal);
+                    break;
+                case "Construct":
+                    HandleConstructNode(node, nonTerminal);
+                    break;
             }
         }
 
@@ -98,7 +101,19 @@ namespace Library.General.NameTable
             _nameType = nonTerminal.Value.Equals("Main_Name") ? NameElementType.MainName : NameElementType.AdditionalName;
         }
 
-        private void HandleParameterNode(ISymbolForestNode node)
+        private void HandleConstructNode(ISymbolForestNode node, INonTerminal nonTerminal)
+        {
+            Print();
+
+            _name = node;
+            _nameValue = new UniqueList<ITokenForestNode>();
+            if(nonTerminal.Value.Equals("Construct"))
+            {
+                _nameType = NameElementType.Constructor;
+            }
+        }
+
+        private void HandleParameterNode(ISymbolForestNode node, INonTerminal nonTerminal)
         {
             Print();
 
@@ -244,13 +259,22 @@ namespace Library.General.NameTable
             SortList();
             List<PrefixCouple> prefixes = PrefixParse();
             List<ITokenForestNode> value = ValueParse();
+            ITokenForestNode idToken = IdNameParse();
 
-            _nameTable.AddName(_nameType, prefixes,
-                IdNameParse().Token.Capture.ToString(), value);
+            if (idToken == null)
+            {
+                //_writer.WriteLine("Ошибка: не удалось определить имя идентификатора");
+                //если формат constructor == inc(2); - то не добавится в таблицу имен, надо поправить :)
+                return;
+            }
+
+            string idName = idToken.Token.Capture.ToString();
+            _nameTable.AddName(_nameType, prefixes, idName, value);
+
             ClearNameInfo();
 
         }
-
+         
         private void ClearNameInfo()
         {
             _name = null;
@@ -309,10 +333,6 @@ namespace Library.General.NameTable
             return prefixes;
         }
 
-        //private List<ITokenForestNode> ParseParamsAndConstructValue()
-        //{
-
-        //}
 
         private List<ITokenForestNode> ValueParse()
         {

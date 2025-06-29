@@ -17,40 +17,23 @@ namespace Library.General.Workspace
 
         public UndefinedType GetUndefinedType()
         {
-            foreach(var element in Value)
-            {
-                if (element.Token.TokenType.Id.Equals("OR"))
-                {
-                    return UndefinedType.Undefined_Sets;
-                }
-            }
-            //добавленые мной множества
-            foreach (var element in Value)
-            {
-                if (element.Token.TokenType.Id.Equals("REAL_S") || element.Token.TokenType.Id.Equals("INT_S"))
-                {
-                    return UndefinedType.Undefined_Sets;
-                }
-            }
+            if (Value.Any(node => node.Token.TokenType.Id == "LOGIC_RELATION_IMPLICATION"))
+                return UndefinedType.Function;
 
-            foreach (var element in Value)
-            {
-                if (element.Token.TokenType.Id.Equals("STRING_S"))
-                {
-                    return UndefinedType.Set_String;
-                }
-            }
+            if (Value.Any(node => node.Token.TokenType.Id == "OR" ||
+                                 node.Token.TokenType.Id == "REAL_S" ||
+                                 node.Token.TokenType.Id == "INT_S"))
+                return UndefinedType.Undefined_Sets;
+
+            if (Value.Any(node => node.Token.TokenType.Id == "STRING_S"))
+                return UndefinedType.Set_String;
+
             return UndefinedType.None;
         }
 
         public override string ToString()
         {
-            StringBuilder builder = new StringBuilder();
-            foreach (var elemet in Value)
-            {
-                builder.Append($" {elemet.Token.Capture.ToString()}");
-            }
-            return builder.ToString();
+            return string.Join(" ", Value.Select(node => node.Token.Capture.ToString()));
         }
     }
 }

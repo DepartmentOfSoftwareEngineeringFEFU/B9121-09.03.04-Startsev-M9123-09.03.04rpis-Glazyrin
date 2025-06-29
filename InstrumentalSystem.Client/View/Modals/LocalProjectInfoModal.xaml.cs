@@ -36,6 +36,7 @@ namespace InstrumentalSystem.Client.View.Modals
             ModuleList.ItemsSource = _modules;
         }
 
+
         private void ReadModules()
         {
             _modules = new List<LogicModule>();

@@ -4,15 +4,19 @@ using InstrumentalSystem.Client.View.Pages.ModuleCreation;
 using Library.Analyzer.Automata;
 using Library.Analyzer.Collections;
 using Library.Analyzer.Forest;
+using Library.Analyzer.Tokens;
 using Library.General.NameTable;
 using Library.General.Project;
 using Library.General.Workspace;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Xml.Linq;
 
 namespace InstrumentalSystem.Client.View.Modal
 {
@@ -24,8 +28,10 @@ namespace InstrumentalSystem.Client.View.Modal
         private List<ModuleCreationTask> _tasks;
         private List<BaseNameElement> _undefinedNames;
         private List<BaseNameElement> _taskNames;
+        private List<Function> _functions;
         private ModuleNameTable _nameTable;
         private List<Parameter> _parameters;
+        private List<String> _generatedConstructors;
         private int _count;
         private int _additionalCount;
         private LogicModuleNamespace _moduleNamespace;
@@ -47,10 +53,12 @@ namespace InstrumentalSystem.Client.View.Modal
             if (parameters != null)
             {
                 _parameters = parameters;
-            }
+            } else _parameters = new List<Parameter> ();
 
             _taskNames = new List<BaseNameElement>();          
             _tasks = new List<ModuleCreationTask>();
+            _functions = new List<Function>();
+            _generatedConstructors = new List<string>();
             _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SetModuleName));
             _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.Uses));
             _count = 0;
@@ -87,6 +95,7 @@ namespace InstrumentalSystem.Client.View.Modal
                         $"{_sorts.ToString()}" +
                         $"End;\n");
 
+
                     if(_parameters.Count != 0)
                     {
                         foreach (var param in _parameters)
@@ -99,6 +108,14 @@ namespace InstrumentalSystem.Client.View.Modal
                             {
                                 _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent($"Param {param.id};");
                             }
+                        }
+                    }
+
+                    if(_generatedConstructors.Count != 0)
+                    {
+                        foreach (var constructor in _generatedConstructors)
+                        {
+                            _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(constructor);
                         }
                     }
 
@@ -125,7 +142,7 @@ namespace InstrumentalSystem.Client.View.Modal
             if (_count > 0)
                 _tasks[_count - 1].InProgress = false;
             Page? page = default;
-            switch (_tasks[_count].Task) 
+            switch (_tasks[_count].TaskType) 
             {
                 case ModuleCreationTaskType.SetModuleName:
                     page = new SetNamePage();
@@ -145,6 +162,48 @@ namespace InstrumentalSystem.Client.View.Modal
                 case ModuleCreationTaskType.SortDefineValue:
                     page = new SortDefineValuePage(_taskNames[_count - _additionalCount]);
                     break;
+                case ModuleCreationTaskType.ConstructConfirmation:
+                    var coupledSort = DefineCoupledSortForConstructorByPrefix(_taskNames[_count - _additionalCount]);
+                    var expectedType = coupledSort.Value.ToString();
+                    var nextLevelTerm = coupledSort.ID;
+                    var confirmationPage = new ConstructCreationalConfirmation(_taskNames[_count - _additionalCount], expectedType);
+
+                    confirmationPage.ConstructorProcessed += (constructor, terms) =>
+                    {
+                        if (terms != null && terms.Count > 0)
+                        {
+                            var termBuilder = new StringBuilder($"{nextLevelTerm} = ");
+                            termBuilder.Append("{");
+                            foreach (var term in terms)
+                            {
+                                termBuilder.Append($"{term.termName}, ");
+                            }
+                            var termin = $" {termBuilder.ToString().Substring(0, termBuilder.ToString().Length - 2)}" + "};\n";
+                            _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}")
+                                    .AddContent(termin);
+
+                            if (_taskNames[_count - _additionalCount].Prefix.PrefixCouples.Count == 1)
+                            {
+                                foreach (var term in terms)
+                                {
+                                    _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}")
+                                        .AddContent($" {term.termName} == {constructor.ID}({term.argument});\n");
+                                }
+                            } else
+                            {
+                                foreach (var term in terms)
+                                {
+                                    _generatedConstructors.Add($"Constructor {term.termName} == {constructor.ID}({term.argument});\n");
+                                }
+                            }
+
+                            
+                        } 
+                        NextButton_Click(null, null);
+                    };
+
+                    page = confirmationPage;
+                    break;
             }
 
             TaskPage.Content = page;
@@ -152,7 +211,7 @@ namespace InstrumentalSystem.Client.View.Modal
 
         private void UpdateAdditionalTasks()
         {
-            if (_tasks[_count].Task == ModuleCreationTaskType.SetModuleName)
+            if (_tasks[_count].TaskType == ModuleCreationTaskType.SetModuleName)
             {
                 if (TaskPage.Content is SetNamePage namePage)
                 {
@@ -179,7 +238,7 @@ namespace InstrumentalSystem.Client.View.Modal
 
         private void UpdateTasks()
         {
-            switch (_tasks[_count].Task)
+            switch (_tasks[_count].TaskType)
             {
                 case ModuleCreationTaskType.BaseOn:
                     BaseOnPageType();
@@ -191,6 +250,17 @@ namespace InstrumentalSystem.Client.View.Modal
                 case ModuleCreationTaskType.SortDefineValue:
                     SortDefineValuePageType();
                     break;
+                case ModuleCreationTaskType.SortConstructCreational:
+                    SortConstructCreationalPageType();
+                    break;
+            }
+        }
+
+        private void SortConstructCreationalPageType()
+        {
+            if (TaskPage.Content is SortConstructCreational constructCreationalPage)
+            {
+                var constructors = _nameTable.GetConstructors();
             }
         }
 
@@ -198,13 +268,16 @@ namespace InstrumentalSystem.Client.View.Modal
         {
             if (TaskPage.Content is SortSetValuePage sortValuePage)
             {
-                var isSortsNeeded = IsNeedInDefineSorts(sortValuePage._name.ID);
-                StringBuilder builder = new StringBuilder($" {sortValuePage._name.ID} = ");
+                var currentSortId = sortValuePage._name.ID;
+                var isSortsNeeded = IsNeedInDefineSorts(currentSortId);
+                StringBuilder builder = new StringBuilder($" {currentSortId} = ");
                 builder.Append("{");
                 foreach (var line in sortValuePage.NamesTextBox.Text.Split("\n"))
                 {
                     if (line.Length > 0)
                     {
+                        //проверка типа
+
                         builder.Append($"{line.Replace("\r","")}, ");
                         if (isSortsNeeded.Count != 0)
                             foreach (var sort in isSortsNeeded)
@@ -227,8 +300,36 @@ namespace InstrumentalSystem.Client.View.Modal
                     }
                 }
 
-                _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(
-                    $"{builder.ToString().Substring(0, builder.ToString().Length - 2)}" + "};\n");
+                String termin = $"{builder.ToString().Substring(0, builder.ToString().Length - 2)}" + "};\n";
+
+                bool isFunction = false;
+
+                foreach (var func in _functions)
+                {
+                    if (func.sourceElement.ID == currentSortId)
+                    {
+                        func.sourceAsTerm = termin.Substring(3 + currentSortId.Length, termin.Length - 5 - currentSortId.Length);
+                        isFunction = true;
+                    }
+
+                    if (func.destinationElement.ID == currentSortId)
+                    {
+                        func.destinationAsTerm = termin.Substring(3 + currentSortId.Length, termin.Length - 5 - currentSortId.Length);
+                        isFunction = true;
+                    }
+
+                    if (func.sourceAsTerm != null && func.destinationAsTerm != null)
+                    {
+                        _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(func.GetStringAsContent());
+                        return;
+                    }
+                }
+
+                if (!isFunction)
+                {
+                    _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(termin);
+                }
+               
             }
         }
 
@@ -278,86 +379,145 @@ namespace InstrumentalSystem.Client.View.Modal
             bool isHaveMainValueWithTypeSetString = false;
 
             UniqueList<BaseNameElement>? completedTasks = new UniqueList<BaseNameElement>();
-            if (_parameters.Count != 0)
+
+            var currentLevelParameters = GetCurrentLevelParameters();
+
+            _parameters.RemoveAll(parameter => currentLevelParameters.Contains(parameter));
+
+            var mainBaseNameElements = _nameTable.GetMainNameValuesAsBaseNameElements();
+
+            //List<BaseNameElement> implications = mainBaseNameElements
+            //    .Where(baseElement =>
+            //        baseElement.Value is MainNameValue mainNameValue &&
+            //        mainNameValue.Value.Any(node =>
+            //            node.Token.TokenType.Id == "LOGIC_RELATION_IMPLICATION"
+            //        )
+            //    )
+            //    .ToList();
+
+            //foreach (var implicationElement in implications)
+            //{
+            //    if (implicationElement.Value is MainNameValue mainNameValue)
+            //    {
+            //        var implication = ParseImplication(mainNameValue);
+            //        if (implication != null && isParamInImplication(implication.Value.Source, implication.Value.Destination, currentLevelParameters))
+            //        {
+            //            var src = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Source.Token.Capture.ToString());
+            //            var dst = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Destination.Token.Capture.ToString());
+
+            //            if (src != null && dst != null)
+            //            {
+            //                _functions.Add(new Function(
+            //                    id: implicationElement,
+            //                    source: src,
+            //                    destination: dst
+            //                ));
+            //            }
+
+            //        }
+            //    }
+            //}
+
+            //if(_functions.Count > 0)
+            //{
+            //    isHaveMainValueWithTypeSetString = true;
+            //}
+
+            //foreach (var func in _functions)
+            //{
+            //    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+            //    _taskNames.Add(func.sourceElement);
+            //    completedTasks.Add(func.sourceElement);
+            //    _undefinedNames.Remove(func.sourceElement);
+
+            //    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+            //    _taskNames.Add(func.destinationElement);
+            //    completedTasks.Add(func.destinationElement);
+            //    _undefinedNames.Remove(func.destinationElement);
+
+            //    completedTasks.Add(func.parentElement);
+            //}
+
+            foreach (var parameter in currentLevelParameters)
             {
-                List<Parameter> currentLevelParameters = new List<Parameter>();
-
-                foreach (var parameter in _parameters)
                 {
-                    if (parameter.level == _parent.GetLevel())
+                    var currentLevelBasedCouples = GetCurrentLevelBasedCoupleForGenerationWithParameter(completedTasks, parameter);
+
+                    var constructors = _nameTable.GetConstructors();
+
+                    foreach (var task in _undefinedNames)
                     {
-                        currentLevelParameters.Add(parameter);
-                    }
-                }
-
-                if (currentLevelParameters.Count != 0)
-                {
-
-                    foreach (var parameter in currentLevelParameters)
-                    {
-                        _parameters.Remove(parameter);
-                    }
-
-                    foreach (var parameter in currentLevelParameters)
-                    {
-                        List<IValue> currentLevelBasedCouples = new List<IValue>();
-
-                        foreach (var task in _undefinedNames)
+                        foreach (var basedCouple in currentLevelBasedCouples)
                         {
-                            if (task.Prefix.PrefixCouples.Count == 0)  continue;
 
-                            foreach (var couple in task.Prefix.PrefixCouples)
+                            if (task.ID.Equals(basedCouple.Value[0].Token.Capture.ToString())
+                                && task.Value is MainNameValue mainNameValue
+                                && mainNameValue.GetUndefinedType() == UndefinedType.Set_String)
                             {
-                                if (couple.LeftPart.Equals(parameter.id))
-                                {
-                                    completedTasks.Add(task);
-                                    currentLevelBasedCouples.Add(couple.RightPart);
-                                }
+                                isHaveMainValueWithTypeSetString = true;
+                                _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+                                _taskNames.Add(task);
+                                completedTasks.Add(task);
                             }
                         }
 
-                        if (currentLevelBasedCouples.Count == 0) continue;
-
-                        foreach (var task in _undefinedNames)
+                        foreach (var constructor in constructors)
                         {
-                            foreach (var basedCouple in currentLevelBasedCouples)
-                            {
+                            //если конструктор юзался то удалить из таблицы имен
+                            //вручную добавлять конструкторы
 
-                                string task_id = task.ID;
-                                string bc = basedCouple.Value.ToString();
-                                if (task.ID.Equals(basedCouple.Value[0].Token.Capture.ToString()) && task.Value is MainNameValue mainNameValue && mainNameValue.GetUndefinedType() == UndefinedType.Set_String)
+                            //вычленить первоприоритетный префикс
+
+                            if (constructor.Prefix.PrefixCouples.Count == 0)
+                            {
+                                continue;
+                            }
+
+                            var outerPrefix = constructor.Prefix.PrefixCouples[0].getRightPartAsString();
+
+                            if (outerPrefix.Equals(parameter.id) && outerPrefix.Equals(task.ID))
+                            {
+                                _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.ConstructConfirmation));
+                                _taskNames.Add(constructor);
+                                if(!task.Equals(constructor))
                                 {
-                                    isHaveMainValueWithTypeSetString = true;
-                                    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
-                                    _taskNames.Add(task);
                                     completedTasks.Add(task);
+                                    completedTasks.Add(constructor);
                                 }
+                                
                             }
                         }
-
                     }
                 }
             }
 
-            //все понятия и таски, которые должны унаследоваться (не входят в completedTasks)
+            
+
+                //все понятия и таски, которые должны унаследоваться (не входят в completedTasks)
+
+            var targetLevel = _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}");
 
             foreach (var task in _nameTable.Elements)
             {
-                if (isHaveMainValueWithTypeSetString)
+                //подумать как тут условия прописать
+                //if ((!isHaveMainValueWithTypeSetString || !completedTasks.Contains(task)) && task.NameElementType is not NameElementType.Constructor) 
+                //{
+                //    targetLevel.AddContent(task.GetStringAsContent());
+                //}
+                if ((!isHaveMainValueWithTypeSetString && !completedTasks.Contains(task)) || (!completedTasks.Contains(task) && task.NameElementType is not NameElementType.Constructor))
                 {
-                    if (!completedTasks.Contains(task))
+                    if (task.NameElementType is NameElementType.Constructor)
                     {
-                        _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(task.GetStringAsContent());
-
+                        _generatedConstructors.Add(task.GetStringAsContent());
+                        continue;
                     }
-                }
-                else
-                {
-                    _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").AddContent(task.GetStringAsContent());
+
+                    targetLevel.AddContent(task.GetStringAsContent());
                 }
             }
+
             //_moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").SetContent()
-            
+
 
             //параметры
 
@@ -367,9 +527,98 @@ namespace InstrumentalSystem.Client.View.Modal
             //limit
         }
 
+        private List<Parameter> GetCurrentLevelParameters()
+        {
+            List<Parameter> parameters = new List<Parameter>();
+
+            if (_parameters.Count == 0)
+            {
+                return parameters;
+            }
+
+            return _parameters
+                .Where(p => p.level == _parent.GetLevel())
+                .ToList();
+        }
+
+        private List<IValue> GetCurrentLevelBasedCoupleForGenerationWithParameter(UniqueList<BaseNameElement> tasks, Parameter currentLevelParameter)
+        {
+            var couples = _undefinedNames
+                .Where(task => task.Prefix.PrefixCouples.Count > 0 && task.NameElementType == NameElementType.MainName)
+                .SelectMany(task =>
+                {
+                    var matchingCouples = task.Prefix.PrefixCouples
+                        .Where(couple => couple.getRightPartAsString().Equals(currentLevelParameter.id))
+                        .ToList();
+
+                    if (matchingCouples.Any())
+                    {
+                        tasks.Add(task);
+                    }
+
+                    return matchingCouples.Select(couple => couple.RightPart);
+                })
+                .ToList();
+
+            return couples;
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Visibility = Visibility.Collapsed;
+        }
+
+        private BaseNameElement DefineCoupledSortForConstructorByPrefix(BaseNameElement element)
+        {
+            if(element.NameElementType != NameElementType.Constructor) 
+            {
+                return null;
+            }
+
+            var rightSort = element.Prefix.PrefixCouples[0].getRightPartAsString();
+
+            var mainElements = _nameTable.GetMainNameValuesAsBaseNameElements();
+
+            foreach (var mainElement in mainElements)
+            {
+                if (mainElement.ID.Equals(rightSort))
+                {
+                    return mainElement;
+                }
+            }
+
+            return null;
+        }
+
+        private bool isParamInImplication(ITokenForestNode source, ITokenForestNode destination, List<Parameter> currentLevelParameters)
+        {
+            string sourceParamName = source.Token.Capture.ToString();
+            string destParamName = destination.Token.Capture.ToString();
+
+            var sourceParam = currentLevelParameters.FirstOrDefault(p => p.id == sourceParamName);
+            var destParam = currentLevelParameters.FirstOrDefault(p => p.id == destParamName);
+
+            if(sourceParam != null && destParam != null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static (ITokenForestNode Source, ITokenForestNode Destination)? ParseImplication(MainNameValue mainNameValue)
+        {
+            var nodes = mainNameValue.Value;
+            for (int i = 0; i < nodes.Count - 2; i++)
+            {
+                if (nodes[i + 1].Token.TokenType.Id == "LOGIC_RELATION_IMPLICATION")
+                {
+                    var source = nodes[i]; 
+                    var destination = nodes[i + 2];  
+                    return (source, destination);
+                }
+            }
+            return null;  
         }
     }
 }

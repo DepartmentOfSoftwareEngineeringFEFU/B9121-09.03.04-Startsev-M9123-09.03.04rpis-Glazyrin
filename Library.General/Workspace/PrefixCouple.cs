@@ -29,5 +29,10 @@ namespace Library.General.Workspace
             return $"({LeftPart} In {RightPart})";
         }
 
+        public String getRightPartAsString()
+        {
+            return $"{RightPart}";
+        }
+
     }
 }

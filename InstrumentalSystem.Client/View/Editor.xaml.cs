@@ -18,6 +18,8 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -299,6 +301,104 @@ namespace InstrumentalSystem.Client.View
         private void SaveProjectButton_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void AddModuleFromComputer_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Выберите файл модуля",
+                Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*",
+                RestoreDirectory = true
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string fileContent = File.ReadAllText(openFileDialog.FileName);
+
+                    // Парсим название модуля и уровень из содержимого
+                    var moduleInfo = ParseModuleInfo(fileContent);
+                    if (moduleInfo == null)
+                    {
+                        MessageBox.Show("Не удалось распознать структуру модуля в файле",
+                                      "Ошибка",
+                                      MessageBoxButton.OK,
+                                      MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var newModule = new LogicModule($"Уровень {moduleInfo.Level}", fileContent);
+
+                    if (ClientConfig.Project != null)
+                    {
+   
+                        var levelNamespace = ClientConfig.Project.Namespaces
+                            .FirstOrDefault(n => n.Name == moduleInfo.Name);
+
+                        if (levelNamespace == null)
+                        {
+                            levelNamespace = new LogicModuleNamespace(moduleInfo.Name);
+                            ClientConfig.Project.Namespaces.Add(levelNamespace);
+                        }
+
+                        // Проверяем, нет ли уже модуля с таким именем
+                        if (levelNamespace.Levels.Any(m => m.Name == moduleInfo.Name))
+                        {
+                            MessageBox.Show($"Модуль с именем '{moduleInfo.Name}' уже существует на уровне {moduleInfo.Level}",
+                                          "Предупреждение",
+                                          MessageBoxButton.OK,
+                                          MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        levelNamespace.Levels.Add(newModule);
+
+                        tvLogicModules.Items.Refresh();
+
+                        MessageBox.Show($"Модуль '{moduleInfo.Name}' (уровень {moduleInfo.Level}) успешно добавлен в проект!",
+                                      "Успех",
+                                      MessageBoxButton.OK,
+                                      MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при добавлении модуля: {ex.Message}",
+                                  "Ошибка",
+                                  MessageBoxButton.OK,
+                                  MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // Вспомогательный метод для парсинга информации о модуле
+        private ModuleInfo ParseModuleInfo(string moduleContent)
+        {
+            try
+            {
+                // Ищем строку с объявлением модуля (например: "Module chem: 4;")
+                var moduleMatch = Regex.Match(moduleContent, @"Module\s+([a-zA-Z_]\w*)\s*:\s*(\d+)\s*;");
+                if (!moduleMatch.Success)
+                    return null;
+
+                string name = moduleMatch.Groups[1].Value;
+                int level = int.Parse(moduleMatch.Groups[2].Value);
+
+                return new ModuleInfo { Name = name, Level = level };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Вспомогательный класс для хранения информации о модуле
+        private class ModuleInfo
+        {
+            public string Name { get; set; }
+            public int Level { get; set; }
         }
     }
 }
