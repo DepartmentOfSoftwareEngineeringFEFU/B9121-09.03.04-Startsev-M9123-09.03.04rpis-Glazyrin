@@ -55,15 +55,19 @@ namespace InstrumentalSystem.Client.View
 
         private void InitializeEngine()
         {
-            var path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "grammar.pdl");
-            var content = File.ReadAllText(path);
+            string projectRoot = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.FullName;
+            string grammarPath = Path.Combine(projectRoot, "Grammatics", "grammar.pdl");
+
+            if (!File.Exists(grammarPath))
+                throw new FileNotFoundException($"Grammar file not found at: {grammarPath}");
+
+            string content = File.ReadAllText(grammarPath);
 
             string filePath = "C:/Users/denst/OneDrive/Рабочий стол/grammar.txt";
 
             // Используйте StreamWriter для записи информации в файл
             using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
             {
-                writer.WriteLine(path);
                 writer.WriteLine(content);
             }
 
