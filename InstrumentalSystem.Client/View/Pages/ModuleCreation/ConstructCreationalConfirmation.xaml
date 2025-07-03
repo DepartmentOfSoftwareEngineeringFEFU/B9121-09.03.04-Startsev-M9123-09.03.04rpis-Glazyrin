@@ -1,0 +1,35 @@
+﻿<Page x:Class="InstrumentalSystem.Client.View.Pages.ModuleCreation.ConstructCreationalConfirmation"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:InstrumentalSystem.Client.View.Pages.ModuleCreation"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="ConfirmationPage">
+
+    <Grid Margin="20">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="Создать предложения на основе текущего конструктора:"
+                       FontSize="18"
+                       Margin="0 0 0 20"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock x:Name="ConstructorText"
+                       FontSize="16"
+                       Margin="0 0 0 30"
+                       TextWrapping="Wrap"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Да" 
+                        Width="100"
+                        Margin="0 0 20 0"
+                        Click="YesButton_Click"/>
+
+                <Button Content="Нет" 
+                        Width="100"
+                        Click="NoButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>
