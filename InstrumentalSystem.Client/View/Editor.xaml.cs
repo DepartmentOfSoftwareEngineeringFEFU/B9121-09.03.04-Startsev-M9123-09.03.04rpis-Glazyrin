@@ -80,13 +80,13 @@ namespace InstrumentalSystem.Client.View
 
             string content = File.ReadAllText(grammarPath);
 
-            string filePath = "C:/Users/denst/OneDrive/Рабочий стол/grammar.txt";
+            //string filePath = "C:/Users/denst/OneDrive/Рабочий стол/grammar.txt";
 
-            // Используйте StreamWriter для записи информации в файл
-            using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
-            {
-                writer.WriteLine(content);
-            }
+            //// Используйте StreamWriter для записи информации в файл
+            //using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
+            //{
+            //    writer.WriteLine(content);
+            //}
 
             // parse the grammar definition file
             var pdlParser = new PdlParser();
@@ -200,13 +200,13 @@ namespace InstrumentalSystem.Client.View
 
             //если не раскомментировать верхнюю строку, то алгоритм не доходит до конца и не читает последний символ(узел)
 
-            string filepath = "c:/users/denst/onedrive/рабочий стол/name_table.txt";
+            //string filepath = "c:/users/denst/onedrive/рабочий стол/name_table.txt";
 
-            // используйте streamwriter для записи информации в файл
-            using (StreamWriter writer = new StreamWriter(filepath, true)) // true для добавления в конец файла
-            {
-                writer.WriteLine(log._nameTable.ToString());
-            }
+            //// используйте streamwriter для записи информации в файл
+            //using (StreamWriter writer = new StreamWriter(filepath, true)) // true для добавления в конец файла
+            //{
+            //    writer.WriteLine(log._nameTable.ToString());
+            //}
         }
 
         private void CodeEditor_TextChanged(object sender, TextChangedEventArgs e)
