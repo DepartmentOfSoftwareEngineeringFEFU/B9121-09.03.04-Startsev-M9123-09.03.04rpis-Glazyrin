@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:InstrumentalSystem.Client.View.Modals"
              mc:Ignorable="d" 
-            BorderThickness="0"
+             BorderThickness="0"
              d:DesignHeight="600" d:DesignWidth="1000"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
@@ -31,14 +31,75 @@
 
                 <!--Нижняя панель-->
                 <Border Grid.Row="2" Grid.ColumnSpan="5" CornerRadius="0 0 10 10" Background="{StaticResource black 5}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-
-                        <Button Margin="10" Style="{StaticResource modal bt}" Content="Открыть" x:Name="NextButton"/>
-
-                    </StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
+                            <Button x:Name="VersionButton" Content="Выбрать версию" 
+                                    Style="{StaticResource modal bt}" 
+                                    Click="VersionButton_Click"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+                            <Button Style="{StaticResource modal bt}" Content="Открыть" x:Name="NextButton" Click="NextButton_Click"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
-                
-                <!--Внутренности-->
+
+                <!--Выпадающий список версий-->
+                <!-- Выпадающий список версий -->
+                <Popup x:Name="VersionDropdown" 
+       Placement="Bottom"
+       PlacementTarget="{Binding ElementName=VersionButton}"
+       StaysOpen="False"
+       AllowsTransparency="True"
+       PopupAnimation="Slide"
+       Width="{Binding ActualWidth, ElementName=VersionButton}"
+       MaxHeight="200">
+                    <Border Background="{StaticResource black 5}" 
+            BorderBrush="{StaticResource black 4}" 
+            BorderThickness="1"
+            CornerRadius="3">
+                        <ListView ItemsSource="{Binding Versions}"
+                  SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Padding" Value="8 4"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Foreground" Value="{StaticResource black 1}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListViewItem">
+                                                <Border Background="{TemplateBinding Background}" 
+                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource main 4}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource main 3}"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource black 5}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="DemiBold"/>
+                                        <TextBlock Text="{Binding Date, StringFormat='Дата: {0:dd.MM.yyyy}'}" 
+                                   FontSize="12" Foreground="{StaticResource black 3}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </Popup>
+
+                <!--Основное содержимое-->
                 <Grid Grid.Row="1" Margin="20 20 5 20">
                     <DockPanel LastChildFill="False">
                         <Label Content="Имя проекта:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
@@ -48,21 +109,24 @@
                         <Label Content="Владелец проекта:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
                                HorizontalAlignment="Left" FontSize="20"/>
                         <TextBlock Margin="5 0 0 0" VerticalAlignment="Center" DockPanel.Dock="Top" FontSize="20">
-                        <Hyperlink Foreground="{StaticResource main 1}">
-                             <TextBlock Text="{Binding Owner}"/>
-                        </Hyperlink>
-                         </TextBlock>
-                        <TextBlock Margin="5 10 0 0" HorizontalAlignment="Left" Text="Последние изменения: 29.06.2022" DockPanel.Dock="Top" FontSize="20" Foreground="{StaticResource black 2}" 
-                                   TextWrapping="Wrap" Name="LastEditedLabel"/>
+                            <Hyperlink Foreground="{StaticResource main 1}">
+                                <TextBlock Text="{Binding Owner}"/>
+                            </Hyperlink>
+                        </TextBlock>
+                        <TextBlock Margin="5 10 0 0" HorizontalAlignment="Left" DockPanel.Dock="Top" FontSize="20" Foreground="{StaticResource black 2}" 
+                                   TextWrapping="Wrap" Name="LastEditedLabel">
+                            <Run Text="Последние изменения:"/>
+                            <Run Text="{Binding SelectedVersion.Date, StringFormat=' {0:dd.MM.yyyy}'}"/>
+                        </TextBlock>
                     </DockPanel>
                 </Grid>
-                <DockPanel  Grid.Row="1" Grid.Column="2" LastChildFill="True" Margin="10 20">
+
+                <!--Модули проекта (полностью сохранен оригинал)-->
+                <DockPanel Grid.Row="1" Grid.Column="2" LastChildFill="True" Margin="10 20">
                     <Label Content="Модули проекта:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
-                               HorizontalAlignment="Left" FontSize="20"/>
+                           HorizontalAlignment="Left" FontSize="20"/>
                     <Border BorderBrush="{StaticResource black 4}" BorderThickness="1">
-
                         <ListView Style="{StaticResource list view}" Name="ModuleList">
-
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="{x:Type ListViewItem}">
                                     <Setter Property="Height" Value="40"/>
@@ -92,24 +156,21 @@
                                                         <Setter Property="Foreground" Value="{StaticResource black 2}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
-
                                             </ControlTemplate>
                                         </Setter.Value>
                                     </Setter>
-
                                 </Style>
                             </ListView.ItemContainerStyle>
                         </ListView>
                     </Border>
                 </DockPanel>
 
-                <DockPanel  Grid.Row="1" Grid.Column="5" LastChildFill="True" Margin="10 20 20 20">
+                <!--Пользователи (полностью сохранен оригинал)-->
+                <DockPanel Grid.Row="1" Grid.Column="4" LastChildFill="True" Margin="10 20 20 20">
                     <Label Content="Пользователи:" DockPanel.Dock="Top" Foreground="{StaticResource black 1}"
-                               HorizontalAlignment="Left" FontSize="20"/>
+                           HorizontalAlignment="Left" FontSize="20"/>
                     <Border BorderBrush="{StaticResource black 4}" BorderThickness="1">
-
                         <ListView Style="{StaticResource list view}" Name="UserList">
-
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="{x:Type ListViewItem}">
                                     <Setter Property="Height" Value="40"/>
@@ -140,37 +201,32 @@
                                                         <Setter Property="Foreground" Value="{StaticResource black 2}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
-
                                             </ControlTemplate>
                                         </Setter.Value>
                                     </Setter>
-
                                 </Style>
                             </ListView.ItemContainerStyle>
-
                         </ListView>
                     </Border>
                 </DockPanel>
 
-
-                <!--Верхняя панель-->
+                <!--Верхняя панель (полностью сохранен оригинал)-->
                 <Border Grid.Row="0" Grid.ColumnSpan="5" CornerRadius="10 10 0 0" Background="{StaticResource main 3}">
                     <Grid>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20 10" >
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20 10">
                             <Image Source="{StaticResource project creation}" Width="40" Height="40" Name="HeaderImage"/>
                             <Label Content="Проверка прав" VerticalAlignment="Center" FontSize="25" Name="ModalHeader"
                                    FontWeight="Bold" Foreground="{StaticResource black 5}" Margin="10 0 0 0"/>
                         </StackPanel>
 
                         <Button Margin="10" Style="{StaticResource modal bt}" Content="✕" FontWeight="Bold"
-                                x:Name="CloseButton" Click="CloseButton_Click"  HorizontalAlignment="Right"/>
+                                x:Name="CloseButton" Click="CloseButton_Click" HorizontalAlignment="Right"/>
                     </Grid>
 
                     <Border.BitmapEffect>
                         <DropShadowBitmapEffect Direction="270" ShadowDepth="3" Opacity=".3"/>
                     </Border.BitmapEffect>
                 </Border>
-
             </Grid>
         </Border>
     </Grid>

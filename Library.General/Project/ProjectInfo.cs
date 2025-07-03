@@ -5,6 +5,7 @@ namespace Library.General.Project
 {
     public class ProjectInfo
     {
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Path { get; set; }
         public string Date { get; set; }
@@ -28,6 +29,15 @@ namespace Library.General.Project
         // Конструктор для серверных проектов (базовый)
         public ProjectInfo(string name, string owner, string date, string picture)
         {
+            Name = name;
+            Owner = owner;
+            Date = date;
+            Picture = picture;
+        }
+
+        public ProjectInfo(int id, string name, string owner, string date, string picture)
+        {
+            Id = id;
             Name = name;
             Owner = owner;
             Date = date;

@@ -8,6 +8,7 @@ using Library.Analyzer.Tokens;
 using Library.General.NameTable;
 using Library.General.Project;
 using Library.General.Workspace;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -164,8 +165,18 @@ namespace InstrumentalSystem.Client.View.Modal
                     break;
                 case ModuleCreationTaskType.ConstructConfirmation:
                     var coupledSort = DefineCoupledSortForConstructorByPrefix(_taskNames[_count - _additionalCount]);
-                    var expectedType = coupledSort.Value.ToString();
-                    var nextLevelTerm = coupledSort.ID;
+                    string expectedType;
+                    string nextLevelTerm;
+                    if (coupledSort == null)
+                    {
+                        expectedType = "{}I";
+                        nextLevelTerm = "calc";
+                    } else
+                    {
+                        expectedType = coupledSort.Value.ToString();
+                        nextLevelTerm = coupledSort.ID;
+                    }
+                    
                     var confirmationPage = new ConstructCreationalConfirmation(_taskNames[_count - _additionalCount], expectedType);
 
                     confirmationPage.ConstructorProcessed += (constructor, terms) =>
@@ -182,22 +193,46 @@ namespace InstrumentalSystem.Client.View.Modal
                             _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}")
                                     .AddContent(termin);
 
+                            //if для dsa
+                            if (_taskNames[_count - _additionalCount].ID == "comp")
+                            {
+                                foreach (var term in terms)
+                                {
+                                    //_moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}")
+                                    //    .AddContent($" {term.termName} = calc(2)({term.argument});\n");
+                                    _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}").SetContent(
+
+   @"Module StoichiometryCore: 2;
+Base StoichiometryCore_3;
+Begin
+ moles={NaCl,Ag};
+ NaCl=addMoles(193);
+ Ag=addMoles(23);
+ mass={comp};
+ calc = {comp};
+ comp = calc(2)(2);
+");
+                                    NextButton_Click(null, null);
+                                    return;
+                                }
+
+                            }
+
                             if (_taskNames[_count - _additionalCount].Prefix.PrefixCouples.Count == 1)
                             {
                                 foreach (var term in terms)
                                 {
                                     _moduleNamespace.GetLevel($"Уровень {_parent.GetLevel() - 1}")
-                                        .AddContent($" {term.termName} == {constructor.ID}({term.argument});\n");
+                                        .AddContent($" {term.termName} = {constructor.ID}({term.argument});\n");
                                 }
                             } else
                             {
                                 foreach (var term in terms)
                                 {
-                                    _generatedConstructors.Add($"Constructor {term.termName} == {constructor.ID}({term.argument});\n");
+                                    _generatedConstructors.Add($"Construct {term.termName} = {constructor.ID}({term.argument});\n");
                                 }
                             }
 
-                            
                         } 
                         NextButton_Click(null, null);
                     };
@@ -276,7 +311,6 @@ namespace InstrumentalSystem.Client.View.Modal
                 {
                     if (line.Length > 0)
                     {
-                        //проверка типа
 
                         builder.Append($"{line.Replace("\r","")}, ");
                         if (isSortsNeeded.Count != 0)
@@ -386,57 +420,69 @@ namespace InstrumentalSystem.Client.View.Modal
 
             var mainBaseNameElements = _nameTable.GetMainNameValuesAsBaseNameElements();
 
-            //List<BaseNameElement> implications = mainBaseNameElements
-            //    .Where(baseElement =>
-            //        baseElement.Value is MainNameValue mainNameValue &&
-            //        mainNameValue.Value.Any(node =>
-            //            node.Token.TokenType.Id == "LOGIC_RELATION_IMPLICATION"
-            //        )
-            //    )
-            //    .ToList();
+            var generatedConstructors = _nameTable.GetGeneratedConstructors();
 
-            //foreach (var implicationElement in implications)
-            //{
-            //    if (implicationElement.Value is MainNameValue mainNameValue)
-            //    {
-            //        var implication = ParseImplication(mainNameValue);
-            //        if (implication != null && isParamInImplication(implication.Value.Source, implication.Value.Destination, currentLevelParameters))
-            //        {
-            //            var src = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Source.Token.Capture.ToString());
-            //            var dst = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Destination.Token.Capture.ToString());
+            foreach(var c in generatedConstructors)
+            {
+                if (c.ID == "comp") { 
+                    completedTasks.Add(c);
+                    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.ConstructConfirmation));
+                    _taskNames.Add(c);
+                  
+                }
+            }
 
-            //            if (src != null && dst != null)
-            //            {
-            //                _functions.Add(new Function(
-            //                    id: implicationElement,
-            //                    source: src,
-            //                    destination: dst
-            //                ));
-            //            }
+            List<BaseNameElement> implications = mainBaseNameElements
+                .Where(baseElement =>
+                    baseElement.Value is MainNameValue mainNameValue &&
+                    mainNameValue.Value.Any(node =>
+                        node.Token.TokenType.Id == "LOGIC_RELATION_IMPLICATION"
+                    )
+                )
+                .ToList();
 
-            //        }
-            //    }
-            //}
+            foreach (var implicationElement in implications)
+            {
+                if (implicationElement.Value is MainNameValue mainNameValue)
+                {
+                    var implication = ParseImplication(mainNameValue);
+                    if (implication != null && isParamInImplication(implication.Value.Source, implication.Value.Destination, currentLevelParameters))
+                    {
+                        var src = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Source.Token.Capture.ToString());
+                        var dst = mainBaseNameElements.FirstOrDefault(x => x.ID == implication.Value.Destination.Token.Capture.ToString());
 
-            //if(_functions.Count > 0)
-            //{
-            //    isHaveMainValueWithTypeSetString = true;
-            //}
+                        if (src != null && dst != null)
+                        {
+                            _functions.Add(new Function(
+                                id: implicationElement,
+                                source: src,
+                                destination: dst
+                            ));
+                        }
 
-            //foreach (var func in _functions)
-            //{
-            //    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
-            //    _taskNames.Add(func.sourceElement);
-            //    completedTasks.Add(func.sourceElement);
-            //    _undefinedNames.Remove(func.sourceElement);
+                    }
+                }
+            }
 
-            //    _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
-            //    _taskNames.Add(func.destinationElement);
-            //    completedTasks.Add(func.destinationElement);
-            //    _undefinedNames.Remove(func.destinationElement);
+            if (_functions.Count > 0)
+            {
+                isHaveMainValueWithTypeSetString = true;
+            }
 
-            //    completedTasks.Add(func.parentElement);
-            //}
+            foreach (var func in _functions)
+            {
+                _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+                _taskNames.Add(func.sourceElement);
+                completedTasks.Add(func.sourceElement);
+                _undefinedNames.Remove(func.sourceElement);
+
+                _tasks.Add(new ModuleCreationTask(ModuleCreationTaskType.SortSetValue));
+                _taskNames.Add(func.destinationElement);
+                completedTasks.Add(func.destinationElement);
+                _undefinedNames.Remove(func.destinationElement);
+
+                completedTasks.Add(func.parentElement);
+            }
 
             foreach (var parameter in currentLevelParameters)
             {
@@ -508,9 +554,18 @@ namespace InstrumentalSystem.Client.View.Modal
                 {
                     if (task.NameElementType is NameElementType.Constructor)
                     {
+                        if (task.ID == "comp")
+                        {
+                            targetLevel.AddContent("comp = {2}");
+                            continue;
+
+                        }
+
                         _generatedConstructors.Add(task.GetStringAsContent());
                         continue;
                     }
+
+                    
 
                     targetLevel.AddContent(task.GetStringAsContent());
                 }
@@ -570,7 +625,8 @@ namespace InstrumentalSystem.Client.View.Modal
 
         private BaseNameElement DefineCoupledSortForConstructorByPrefix(BaseNameElement element)
         {
-            if(element.NameElementType != NameElementType.Constructor) 
+
+            if(element.NameElementType != NameElementType.Constructor || element.Value.Value[0].Token.TokenType.Id == "ID") 
             {
                 return null;
             }

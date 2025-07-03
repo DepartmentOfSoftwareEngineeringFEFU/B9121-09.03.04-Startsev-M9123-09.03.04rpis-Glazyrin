@@ -15,6 +15,8 @@ namespace Library.General.Project
 
         public string Name { get; private set; }
 
+        public int Id { get; set; }
+
         public Project(string name)
         {
             Name = name;

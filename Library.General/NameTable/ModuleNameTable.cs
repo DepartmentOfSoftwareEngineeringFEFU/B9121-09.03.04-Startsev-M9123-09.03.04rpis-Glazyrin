@@ -15,7 +15,7 @@ namespace Library.General.NameTable
 
         public string Name { get; private set; }
 
-        private UniqueList<BaseNameElement> _elements;
+        public UniqueList<BaseNameElement> _elements;
 
         public ModuleNameTable(string name, ModuleNameTable moduleNameTable)
             : this(name, moduleNameTable.Elements)
@@ -42,6 +42,21 @@ namespace Library.General.NameTable
             foreach(var element in _elements)
             {
                 if (element.NameElementType is NameElementType.Constructor)
+                {
+                    constructors.Add(element);
+                }
+            }
+
+            return constructors;
+        }
+
+        public List<BaseNameElement> GetGeneratedConstructors()
+        {
+            var constructors = new List<BaseNameElement>();
+
+            foreach (var element in _elements)
+            {
+                if (element.NameElementType is NameElementType.Constructor && element.Value.Value[0].Token.TokenType.Id == "ID")
                 {
                     constructors.Add(element);
                 }

@@ -8,11 +8,11 @@ namespace Library.General.Project
 {
     public class ModuleJsonModel
     {
-        public int Id { get; set; }
+        public int Level { get; set; }
         public string Name { get; set; }
         public string Body { get; set; }
 
-        public ModuleJsonModel(int id, string name, string body) { Id = id; Name = name; Body = body; }
+        public ModuleJsonModel(int level, string name, string body) { Level = level; Name = name; Body = body; }
     }
 
 }

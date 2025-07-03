@@ -67,7 +67,7 @@
 
         <!-- Кнопка создания -->
         <Button Grid.Row="3"
-                Content="Создать сорта"
+                Content="Создать предложения"
                 HorizontalAlignment="Right"
                 Width="150"
                 Click="CreateButton_Click"/>

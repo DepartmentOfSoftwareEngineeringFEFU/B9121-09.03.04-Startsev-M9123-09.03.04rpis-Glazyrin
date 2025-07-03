@@ -1,4 +1,6 @@
-﻿using InstrumentalSystem.Client.View.Modals;
+﻿using InstrumentalSystem.Client.Logic.Config;
+using InstrumentalSystem.Client.View.Modals;
+using Library.General.User;
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
@@ -54,8 +56,11 @@ namespace InstrumentalSystem.Client.View.Pages.Authenticate
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<LoginResponse>(responseContent);
-                    MessageBox.Show($"Успешный вход! ID пользователя: {result.id}", "Успех",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    UserInfo user = new UserInfo(login);
+
+                    ClientConfig.SetUser(user);
+
 
                     this.Visibility = Visibility.Collapsed;
                 }

@@ -10,7 +10,7 @@
 
     <Grid Margin="20">
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-            <TextBlock Text="Создать сорта на основе текущего конструктора:"
+            <TextBlock Text="Создать предложения на основе текущего конструктора:"
                        FontSize="18"
                        Margin="0 0 0 20"
                        TextWrapping="Wrap"/>

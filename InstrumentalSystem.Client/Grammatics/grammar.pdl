@@ -210,7 +210,8 @@
 				| BEGIN Main_Names Additional_Names END SEMOCOLON
 				| BEGIN Additional_Names END SEMOCOLON
 				| BEGIN Main_Names END SEMOCOLON
-				| BEGIN END SEMOCOLON;
+				| BEGIN END SEMOCOLON
+				| BEGIN Main_Names Additional_Names Main_Names END SEMOCOLON;
 			
 			Main_Names = 
 				Main_Name Main_Names 
@@ -246,8 +247,8 @@
 				| Expression Expressions '=' Expression SEMOCOLON
 				| Expression '=' Expression SEMOCOLON
 				| Expression '=' Set_Definition SEMOCOLON
-				| Expression '==' Expression SEMOCOLON
-				| Expression '==' Constructor_call SEMOCOLON;
+				| Expression '=' Expression SEMOCOLON
+				| Expression '=' Constructor_call SEMOCOLON;
 
 			Constructor_call =
 				ID LPARENTHESIS Arguments RPARENTHESIS Constructor_chain
@@ -274,7 +275,8 @@
 				| Construct;
 			
 			Construct = 
-				CONSTRUCT ID '=' L_Term SEMOCOLON;
+				CONSTRUCT ID '=' L_Term SEMOCOLON
+				| CONSTRUCT ID '=' Constructor_call SEMOCOLON;
 			
 			L_Term = 
 				LPARENTHESIS LAMBDA LPARENTHESIS Prefixes RPARENTHESIS Formula RPARENTHESIS  

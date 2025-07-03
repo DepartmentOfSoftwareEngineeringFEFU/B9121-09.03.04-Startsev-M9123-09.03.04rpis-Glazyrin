@@ -98,7 +98,7 @@
                                 <TreeViewItem.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <Image Source="{StaticResource master module icon}" Height="20" Width="20"/>
-                                        <Label Content="Упавляющий модуль"/>
+                                        <Label Content="Управляющий модуль"/>
                                     </StackPanel>
                                 </TreeViewItem.Header>
                             </TreeViewItem>
@@ -224,7 +224,7 @@
                             <Image Source="{StaticResource settings icon}" Width="30" Height="30"/>
                         </Button>
                         <Button Style="{StaticResource window bar bt}" Name="UserButton">
-                            <Label Style="{StaticResource avatar border}" Content="ФИ" Background="Gray" IsEnabled="False"/>
+                            <Label Style="{StaticResource avatar border}" Content="ВС" Background="LightCoral" IsEnabled="False"/>
                         </Button>
                     </StackPanel>
                 </Grid>

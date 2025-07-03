@@ -15,9 +15,9 @@ namespace InstrumentalSystem.Client.View
         private List<ProjectInfo> _projects;
         private List<ProjectInfo> _serverProjects;
         private readonly HttpClient _httpClient = new HttpClient();
-        private const string ProjectsApiUrl = "https://5203d908-ef6f-4e91-a1cd-23914f3b2e8b.mock.pstmn.io/projects";
-        private const string UsersApiUrl = "https://1a7db8f6-09f6-41d7-9d8d-1e635d52bcc7.mock.pstmn.io/users";
-        private const string ModulesApiUrl = "https://b76bca12-e850-44af-99c2-068a4262ebbd.mock.pstmn.io/modules";
+        private const string ProjectsApiUrl = "http://127.0.0.1:8095/projects";
+        private const string UsersApiUrl = "http://127.0.0.1:8095/users";
+        private const string ModulesApiUrl = "http://127.0.0.1:8095/modules";
 
         public Hub()
         {
@@ -44,14 +44,12 @@ namespace InstrumentalSystem.Client.View
 
         private async Task<List<ProjectInfo>> FetchServerProjects()
         {
-            // Загружаем все данные параллельно
             var projectsTask = _httpClient.GetAsync(ProjectsApiUrl);
             var usersTask = _httpClient.GetAsync(UsersApiUrl);
             var modulesTask = _httpClient.GetAsync(ModulesApiUrl);
 
             await Task.WhenAll(projectsTask, usersTask, modulesTask);
 
-            // Десериализуем данные
             var projectsJson = await projectsTask.Result.Content.ReadAsStringAsync();
             var usersJson = await usersTask.Result.Content.ReadAsStringAsync();
             var modulesJson = await modulesTask.Result.Content.ReadAsStringAsync();
@@ -60,7 +58,6 @@ namespace InstrumentalSystem.Client.View
             var userDtos = JsonConvert.DeserializeObject<List<ProjectUserDto>>(usersJson);
             var moduleDtos = JsonConvert.DeserializeObject<List<ServerModuleDto>>(modulesJson);
 
-            // Создаем словари для быстрого поиска по ID
             var usersDict = new Dictionary<int, ProjectUserDto>();
             foreach (var user in userDtos)
             {
@@ -73,11 +70,9 @@ namespace InstrumentalSystem.Client.View
                 modulesDict[module.id] = module;
             }
 
-            // Преобразуем DTO в ProjectInfo
             var result = new List<ProjectInfo>();
             foreach (var projectDto in projectDtos)
             {
-                // Собираем информацию о пользователях проекта
                 var projectUsers = new List<UserInfo>();
                 foreach (var userId in projectDto.users)
                 {
@@ -87,7 +82,6 @@ namespace InstrumentalSystem.Client.View
                     }
                 }
 
-                // Собираем информацию о модулях проекта
                 var projectModules = new List<LogicModule>();
                 foreach (var moduleId in projectDto.Moduls)
                 {
@@ -97,8 +91,8 @@ namespace InstrumentalSystem.Client.View
                     }
                 }
 
-                // Создаем ProjectInfo с дополнительными данными
                 var projectInfo = new ProjectInfo(
+                    projectDto.id,
                     projectDto.Name,
                     projectDto.Owner,
                     $"Последние изменения: {projectDto.Date}",

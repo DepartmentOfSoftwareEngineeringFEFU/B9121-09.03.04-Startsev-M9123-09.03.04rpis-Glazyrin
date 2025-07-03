@@ -26,6 +26,8 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Text;
+using System.Configuration;
+using System.Net.Http.Json;
 
 namespace InstrumentalSystem.Client.View
 {
@@ -38,6 +40,7 @@ namespace InstrumentalSystem.Client.View
         private ParseEngine? _engine = default(ParseEngine);
         private IInternalForestNode? _root = default(IInternalForestNode);
         private Project? _project = default(Project);
+        private readonly HttpClient _httpClient = new HttpClient();
         private IModuleNameTable _nameTable;
         private List<Parameter> _parameters;
 
@@ -45,7 +48,17 @@ namespace InstrumentalSystem.Client.View
         {
             InitializeComponent();
             var pathParser = path.Split("\\");
-            ClientConfig.Project = ProjectReader.ReadProject($"{path}\\{pathParser[pathParser.Length-1]}.master");
+            ClientConfig.Project = ProjectReader.ReadProject($"{path}\\{pathParser[pathParser.Length - 1]}.master");
+            _project = ClientConfig.Project;
+            ProjectNameLabel.Content = _project.Name;
+            tvLogicModules.ItemsSource = ClientConfig.Project.Namespaces;
+            CodeEditor.IsEnabled = false;
+        }
+
+        public Editor(Project project)
+        {
+            InitializeComponent();
+            ClientConfig.Project = project;
             _project = ClientConfig.Project;
             ProjectNameLabel.Content = _project.Name;
             tvLogicModules.ItemsSource = ClientConfig.Project.Namespaces;
@@ -149,7 +162,7 @@ namespace InstrumentalSystem.Client.View
             //        List<INormalState> states = token.Item2;
 
             //        // Записываем значение лексемы
-                    
+
 
             //        // Записываем состояния
             //        foreach (var state in states)
@@ -164,18 +177,18 @@ namespace InstrumentalSystem.Client.View
 
             var log = new NameSearchForestNodeVisitor(new TextBoxWriter(Console));
 
-            if (!(_root is null) )
+            if (!(_root is null))
             {
                 //string filePathType = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
 
-                // Используйте StreamWriter для записи информации в файл
-                string type = _root.GetType().FullName;
+                //// Используйте StreamWriter для записи информации в файл
+                //string type = _root.GetType().FullName;
 
                 //using (StreamWriter writer = new StreamWriter(filePathType, true)) // true для добавления в конец файла
                 //{
                 //    writer.WriteLine(type);
                 //}
-               
+
                 log.Visit((ISymbolForestNode)_root);
                 _nameTable = log._nameTable;
                 _parameters = log._parameters;
@@ -187,13 +200,13 @@ namespace InstrumentalSystem.Client.View
 
             //если не раскомментировать верхнюю строку, то алгоритм не доходит до конца и не читает последний символ(узел)
 
-            //string filePath = "C:/Users/denst/OneDrive/Рабочий стол/name_table.txt";
-           
-            //// Используйте StreamWriter для записи информации в файл
-            //using (StreamWriter writer = new StreamWriter(filePath, true)) // true для добавления в конец файла
-            //{
-            //    writer.WriteLine(log._nameTable.ToString());
-            //}
+            string filepath = "c:/users/denst/onedrive/рабочий стол/name_table.txt";
+
+            // используйте streamwriter для записи информации в файл
+            using (StreamWriter writer = new StreamWriter(filepath, true)) // true для добавления в конец файла
+            {
+                writer.WriteLine(log._nameTable.ToString());
+            }
         }
 
         private void CodeEditor_TextChanged(object sender, TextChangedEventArgs e)
@@ -208,7 +221,6 @@ namespace InstrumentalSystem.Client.View
                 oldModule.SetContent(CodeEditor.Text);
             }
 
-            // Загружаем текст нового модуля
             if (e.NewValue is LogicModule newModule)
             {
                 CodeEditor.Clear();
@@ -222,7 +234,7 @@ namespace InstrumentalSystem.Client.View
         {
             foreach (var @namespace in _project.Namespaces)
             {
-                foreach(var level in @namespace.Levels)
+                foreach (var level in @namespace.Levels)
                 {
                     level.SetContent(level.Name + "asdas ::: Test");
                 }
@@ -234,7 +246,7 @@ namespace InstrumentalSystem.Client.View
         private void CreateModuleButton_Click(object sender, RoutedEventArgs e)
         {
 
-            if(_nameTable is null && _parameters is null)
+            if (_nameTable is null && _parameters is null)
             {
                 ContentGrid.Children.Add(new ModuleCreationModal(this, default(ModuleNameTable), default(List<Parameter>)));
             }
@@ -309,6 +321,38 @@ namespace InstrumentalSystem.Client.View
 
         }
 
+        private List<ModuleJsonModel> GetAllModules()
+        {
+            var modules = new List<ModuleJsonModel>();
+
+            foreach (var namespaceItem in _project.Namespaces)
+            {
+                if (namespaceItem is LogicModuleNamespace logicNamespace)
+                {
+                    foreach (var level in logicNamespace.Levels)
+                    {
+                        int levelValue = 0;
+                        Match match = Regex.Match(level.Name, @"\d+");
+                        if (match.Success)
+                        {
+                            levelValue = int.Parse(match.Value);
+                        }
+
+                        modules.Add(new ModuleJsonModel
+                        (
+                            levelValue,
+                            logicNamespace.Name,
+                            level.Content
+                        ));
+                    }
+                }
+            }
+
+            return modules;
+
+            //return JsonConvert.SerializeObject(modules, Formatting.Indented);
+        }
+
         private void AddModuleFromComputer_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -324,7 +368,6 @@ namespace InstrumentalSystem.Client.View
                 {
                     string fileContent = File.ReadAllText(openFileDialog.FileName);
 
-                    // Парсим название модуля и уровень из содержимого
                     var moduleInfo = ParseModuleInfo(fileContent);
                     if (moduleInfo == null)
                     {
@@ -339,7 +382,7 @@ namespace InstrumentalSystem.Client.View
 
                     if (ClientConfig.Project != null)
                     {
-   
+
                         var levelNamespace = ClientConfig.Project.Namespaces
                             .FirstOrDefault(n => n.Name == moduleInfo.Name);
 
@@ -349,7 +392,6 @@ namespace InstrumentalSystem.Client.View
                             ClientConfig.Project.Namespaces.Add(levelNamespace);
                         }
 
-                        // Проверяем, нет ли уже модуля с таким именем
                         if (levelNamespace.Levels.Any(m => m.Name == moduleInfo.Name))
                         {
                             MessageBox.Show($"Модуль с именем '{moduleInfo.Name}' уже существует на уровне {moduleInfo.Level}",
@@ -358,19 +400,6 @@ namespace InstrumentalSystem.Client.View
                                           MessageBoxImage.Warning);
                             return;
                         }
-
-        }
-
-        private async void SaveServerProjectButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                string modulesJson = GetAllModulesAsJson();
-
-                using (var client = new HttpClient())
-                {
-                    var content = new StringContent(modulesJson, Encoding.UTF8, "application/json");
-                    var response = await client.PostAsync("https://your-api-endpoint.com/save", content);
 
                         levelNamespace.Levels.Add(newModule);
 
@@ -392,12 +421,10 @@ namespace InstrumentalSystem.Client.View
             }
         }
 
-        // Вспомогательный метод для парсинга информации о модуле
         private ModuleInfo ParseModuleInfo(string moduleContent)
         {
             try
             {
-                // Ищем строку с объявлением модуля (например: "Module chem: 4;")
                 var moduleMatch = Regex.Match(moduleContent, @"Module\s+([a-zA-Z_]\w*)\s*:\s*(\d+)\s*;");
                 if (!moduleMatch.Success)
                     return null;
@@ -413,50 +440,92 @@ namespace InstrumentalSystem.Client.View
             }
         }
 
-        // Вспомогательный класс для хранения информации о модуле
         private class ModuleInfo
         {
             public string Name { get; set; }
             public int Level { get; set; }
+        }
+
+
+        private async void SaveServerProjectButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new CommitMessageDialog
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return; 
+                }
+
+                string commitMessage = dialog.CommitMessage;
+                var modulesJson = GetAllModules();
+
+                List<int> ids = await SaveModulesAsync(modulesJson);
+
+
+
+                var payload = new
+                {
+                    id = _project.Id,
+                    commitName = commitMessage,
+                    moduls = ids
+                };
+
+                string json = System.Text.Json.JsonSerializer.Serialize(payload);
+
+                using (var client = new HttpClient())
+                {
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var response = await client.PostAsync("http://127.0.0.1:8095/project", content);
+
                     if (response.IsSuccessStatusCode)
                     {
-                        MessageBox.Show("Модули успешно сохранены на сервере");
+                        MessageBox.Show("Проект успешно сохранён на сервере", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show($"Ошибка: {response.StatusCode}");
+                        MessageBox.Show($"Ошибка: {response.StatusCode}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private string GetAllModulesAsJson()
+        public async Task<List<int>> SaveModulesAsync(List<ModuleJsonModel> modules)
         {
-            var modules = new List<ModuleJsonModel>();
+            var savedIds = new List<int>();
 
-            // Проходим по всем пространствам имен и модулям
-            foreach (var namespaceItem in _project.Namespaces)
+            try
             {
-                // Если используется структура с Level
-                if (namespaceItem is LogicModuleNamespace logicNamespace)
+                foreach (var module in modules)
                 {
-                    foreach (var level in logicNamespace.Levels)
+                    var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8095/modules", new
                     {
-                        modules.Add(new ModuleJsonModel
-                        (
-                            level.Id,
-                            level.Name,
-                            level.Content
-                        ));
-                    }
-                }
-            }
+                        name = module.Name,
+                        level = module.Level,
+                        content = module.Body
+                    });
 
-            return JsonConvert.SerializeObject(modules, Formatting.Indented);
+                    response.EnsureSuccessStatusCode();
+
+                    var savedId = await response.Content.ReadFromJsonAsync<int>();
+                    savedIds.Add(savedId);
+                }
+
+                return savedIds;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
     }
+
 }

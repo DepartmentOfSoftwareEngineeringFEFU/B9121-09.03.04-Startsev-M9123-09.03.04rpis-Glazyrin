@@ -1,0 +1,14 @@
+﻿<Window x:Class="InstrumentalSystem.Client.View.CommitMessageDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Коммит" Height="160" Width="400" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" WindowStyle="ToolWindow">
+    <StackPanel Margin="20">
+        <TextBlock Text="Введите сообщение коммита:" Margin="0,0,0,10"/>
+        <TextBox Name="CommitMessageTextBox" Height="25" Margin="0,0,0,10"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="OK" Width="80" IsDefault="True" Margin="0,0,10,0" Click="OkButton_Click"/>
+            <Button Content="Отмена" Width="80" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
